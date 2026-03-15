@@ -1,0 +1,183 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "Playfair Display";
+  src: url("/assets/fonts/PlayfairDisplay-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Playfair Display";
+  src: url("/assets/fonts/PlayfairDisplay-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("/assets/fonts/PlusJakartaSans-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("/assets/fonts/PlusJakartaSans-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("/assets/fonts/PlusJakartaSans-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("/assets/fonts/PlusJakartaSans-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --background: 7.9% 0.075 297;
+    --foreground: 96.5% 0.002 0;
+    --card: 10.8% 0.088 298;
+    --card-foreground: 96.5% 0.002 0;
+    --popover: 10.8% 0.088 298;
+    --popover-foreground: 96.5% 0.002 0;
+    --primary: 72.6% 0.116 73;
+    --primary-foreground: 7.9% 0.075 297;
+    --secondary: 16.8% 0.084 301;
+    --secondary-foreground: 80.4% 0.108 77;
+    --muted: 14% 0.08 300;
+    --muted-foreground: 61.7% 0.064 307;
+    --accent: 72.6% 0.116 73;
+    --accent-foreground: 7.9% 0.075 297;
+    --destructive: 56% 0.22 25;
+    --destructive-foreground: 96.5% 0.002 0;
+    --border: 16.8% 0.084 301;
+    --input: 16.8% 0.084 301;
+    --ring: 72.6% 0.116 73;
+    --radius: 0.625rem;
+    --success: 65% 0.18 145;
+    --gold: 72.6% 0.116 73;
+    --gold-hover: 80.4% 0.108 77;
+    --chart-1: 72.6% 0.116 73;
+    --chart-2: 65% 0.18 145;
+    --chart-3: 61.7% 0.064 307;
+    --chart-4: 56% 0.22 25;
+    --chart-5: 70% 0.14 230;
+    --sidebar: 9.5% 0.082 298;
+    --sidebar-foreground: 96.5% 0.002 0;
+    --sidebar-primary: 72.6% 0.116 73;
+    --sidebar-primary-foreground: 7.9% 0.075 297;
+    --sidebar-accent: 16.8% 0.084 301;
+    --sidebar-accent-foreground: 80.4% 0.108 77;
+    --sidebar-border: 16.8% 0.084 301;
+    --sidebar-ring: 72.6% 0.116 73;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground font-body;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display;
+  }
+}
+
+@layer utilities {
+  .gold-text {
+    color: oklch(var(--primary));
+  }
+  .gold-gradient {
+    background: linear-gradient(
+      135deg,
+      oklch(72.6% 0.116 73),
+      oklch(80.4% 0.108 77) 50%,
+      oklch(65% 0.1 68)
+    );
+  }
+  .gold-gradient-text {
+    background: linear-gradient(
+      135deg,
+      oklch(72.6% 0.116 73),
+      oklch(90% 0.12 78) 50%,
+      oklch(70% 0.11 72)
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .card-glow {
+    box-shadow: 0 0 30px oklch(72.6% 0.116 73 / 0.08), 0 4px 24px
+      oklch(0% 0 0 / 0.4);
+  }
+  .gold-glow {
+    box-shadow: 0 0 20px oklch(72.6% 0.116 73 / 0.3);
+  }
+  .glass-surface {
+    background: oklch(10.8% 0.088 298 / 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid oklch(16.8% 0.084 301);
+  }
+  .sidebar-item-active {
+    background: linear-gradient(
+      90deg,
+      oklch(72.6% 0.116 73 / 0.15),
+      oklch(72.6% 0.116 73 / 0.05)
+    );
+    border-left: 2px solid oklch(72.6% 0.116 73);
+    color: oklch(80.4% 0.108 77);
+  }
+  .rank-starter {
+    @apply bg-muted text-foreground;
+  }
+  .rank-bronze {
+    background: oklch(50% 0.12 55);
+    color: oklch(95% 0.03 55);
+  }
+  .rank-silver {
+    background: oklch(75% 0.01 240);
+    color: oklch(20% 0.01 240);
+  }
+  .rank-gold {
+    background: oklch(72.6% 0.116 73);
+    color: oklch(15% 0.08 298);
+  }
+  .rank-platinum {
+    background: oklch(80% 0.04 220);
+    color: oklch(15% 0.04 220);
+  }
+  .rank-diamond {
+    background: linear-gradient(
+      135deg,
+      oklch(70% 0.15 240),
+      oklch(75% 0.12 280)
+    );
+    color: white;
+  }
+}

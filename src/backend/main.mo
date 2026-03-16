@@ -161,6 +161,62 @@ actor {
   var nextWithdrawalId : Nat = 0;
   var nextAnnouncementId : Nat = 0;
 
+  // ── STABLE STORAGE (persists data across canister upgrades) ──────────────
+  stable var _usersStable : [(Principal, User)] = [];
+  stable var _walletsStable : [(Principal, Wallet)] = [];
+  stable var _transactionsStable : [(Text, Transaction)] = [];
+  stable var _withdrawalRequestsStable : [(Text, WithdrawalRequest)] = [];
+  stable var _packagesStable : [(Nat, Package)] = [];
+  stable var _announcementsStable : [(Nat, Announcement)] = [];
+  stable var _nextTransactionIdStable : Nat = 0;
+  stable var _nextWithdrawalIdStable : Nat = 0;
+  stable var _nextAnnouncementIdStable : Nat = 0;
+
+  // Serialize all Maps into stable arrays before the upgrade wasm swap.
+  system func preupgrade() {
+    _usersStable := users.toArray();
+    _walletsStable := wallets.toArray();
+    _transactionsStable := transactions.toArray();
+    _withdrawalRequestsStable := withdrawalRequests.toArray();
+    _packagesStable := packages.toArray();
+    _announcementsStable := announcements.toArray();
+    _nextTransactionIdStable := nextTransactionId;
+    _nextWithdrawalIdStable := nextWithdrawalId;
+    _nextAnnouncementIdStable := nextAnnouncementId;
+  };
+
+  // Restore Maps from stable arrays after the upgrade and re-grant roles.
+  system func postupgrade() {
+    for ((k, v) in _usersStable.values()) { users.add(k, v) };
+    for ((k, v) in _walletsStable.values()) { wallets.add(k, v) };
+    for ((k, v) in _transactionsStable.values()) { transactions.add(k, v) };
+    for ((k, v) in _withdrawalRequestsStable.values()) { withdrawalRequests.add(k, v) };
+    for ((k, v) in _packagesStable.values()) { packages.add(k, v) };
+    for ((k, v) in _announcementsStable.values()) { announcements.add(k, v) };
+    nextTransactionId := _nextTransactionIdStable;
+    nextWithdrawalId := _nextWithdrawalIdStable;
+    nextAnnouncementId := _nextAnnouncementIdStable;
+
+    // Re-grant access control roles from the restored users data.
+    // The admin is whoever holds sponsorCode == "ADMIN001".
+    for ((principal, user) in _usersStable.values()) {
+      switch (user.sponsorCode) {
+        case (?code) {
+          if (code == "ADMIN001") {
+            accessControlState.userRoles.add(principal, #admin);
+            accessControlState.adminAssigned := true;
+          } else {
+            accessControlState.userRoles.add(principal, #user);
+          };
+        };
+        case null {
+          accessControlState.userRoles.add(principal, #user);
+        };
+      };
+    };
+  };
+  // ── END STABLE STORAGE ────────────────────────────────────────────────────
+
   // Helper: check if ADMIN001 sponsor already exists in the users table
   func admin001Exists() : Bool {
     for ((_, user) in users.toArray().values()) {
@@ -218,10 +274,8 @@ actor {
 
 
   // ── AUTO INCOME DISTRIBUTION ─────────────────────────────────────────────
-  // Base income amounts (in smallest unit, e.g. points/rupees)
-  let DIRECT_REFERRAL_AMOUNT : Nat = 100;  // flat direct referral on join
-  let BINARY_PAIR_AMOUNT     : Nat = 200;  // flat binary pair when both legs filled
-  // Level income percentages (basis points of DIRECT_REFERRAL_AMOUNT)
+  let DIRECT_REFERRAL_AMOUNT : Nat = 100;
+  let BINARY_PAIR_AMOUNT     : Nat = 200;
   func levelIncomeAmount(level : Nat) : Nat {
     if (level == 1)      { 50 }
     else if (level == 2) { 40 }
@@ -229,7 +283,6 @@ actor {
     else                 { 10 }
   };
 
-  // Walk up ancestors and pay level income
   func distributeLevelIncome(newUserPrincipal : Principal, baseAmount : Nat) {
     var current = newUserPrincipal;
     var level = 1;
@@ -238,10 +291,9 @@ actor {
         case null { break levelLoop };
         case (?u) {
           let sponsorPrinc = u.sponsorId;
-          // stop if sponsor is self (root node)
           if (sponsorPrinc == current) { break levelLoop };
           switch (wallets.get(sponsorPrinc)) {
-            case null {};  // sponsor has no wallet, skip
+            case null {};
             case (?_) {
               let amt = (baseAmount * levelIncomeAmount(level)) / 1000;
               if (amt > 0) {
@@ -256,17 +308,13 @@ actor {
     };
   };
 
-  // Called after successful registration
   func autoDistributeOnJoin(newUserPrincipal : Principal, sponsorPrincipal : Principal) {
-    // 1. Direct referral income to sponsor
     switch (wallets.get(sponsorPrincipal)) {
       case null {};
       case (?_) {
         creditIncomeToWallet(sponsorPrincipal, DIRECT_REFERRAL_AMOUNT, #directReferralBonus, ?newUserPrincipal);
       };
     };
-
-    // 2. Binary pair income: check if sponsor now has BOTH children
     switch (users.get(sponsorPrincipal)) {
       case null {};
       case (?sp) {
@@ -283,18 +331,14 @@ actor {
         };
       };
     };
-
-    // 3. Level income up 10 ancestors
     distributeLevelIncome(newUserPrincipal, 1000);
   };
 
-  // Called after plan/package purchase
   func autoDistributeOnPlanActivation(buyer : Principal, packagePrice : Nat) {
     switch (users.get(buyer)) {
       case null {};
       case (?u) {
         let sponsorPrincipal = u.sponsorId;
-        // Direct referral income = 10% of package price to direct sponsor
         let directAmt = packagePrice / 10;
         switch (wallets.get(sponsorPrincipal)) {
           case null {};
@@ -304,7 +348,6 @@ actor {
             };
           };
         };
-        // Level income based on package price
         distributeLevelIncome(buyer, packagePrice);
       };
     };
@@ -393,7 +436,6 @@ actor {
     position : Position,
     sponsorCode : ?Text,
   ) : async Principal {
-    // --- Input validation (descriptive errors instead of raw assert) ---
     if (username.size() < 3) {
       Runtime.trap("Username must be at least 3 characters");
     };
@@ -404,7 +446,7 @@ actor {
       Runtime.trap("A valid email address is required");
     };
 
-    // --- Duplicate check (by username, email, phone) ---
+    // Duplicate check (by username, email, phone)
     for ((_, existingUser) in users.toArray().values()) {
       if (existingUser.username.toLower() == username.toLower()) {
         Runtime.trap("Username already taken. Please choose a different username.");
@@ -417,8 +459,7 @@ actor {
       };
     };
 
-    // --- Sponsor validation ---
-    // The sponsorId must exist in the users map.
+    // Sponsor validation
     let sponsor = switch (users.get(sponsorId)) {
       case null {
         Runtime.trap("Sponsor not found. Make sure ADMIN001 has been set up at /admin before registering.");
@@ -426,8 +467,7 @@ actor {
       case (?s) { s };
     };
 
-    // --- Binary position availability check ---
-    // Ensure the chosen slot on the sponsor is still free.
+    // Binary position availability check
     switch (position) {
       case (#left) {
         switch (sponsor.leftChild) {
@@ -447,7 +487,7 @@ actor {
       };
     };
 
-    // --- Create new user ---
+    // Create new user and save to users map
     let newUser : User = {
       userId = caller;
       username;
@@ -467,7 +507,7 @@ actor {
     };
     users.add(caller, newUser);
 
-    // --- Update sponsor's child pointer in the binary tree ---
+    // Update sponsor's child pointer in the binary tree
     let updatedSponsor : User = {
       userId = sponsor.userId;
       username = sponsor.username;
@@ -493,7 +533,7 @@ actor {
     };
     users.add(sponsorId, updatedSponsor);
 
-    // --- Create wallet ---
+    // Create wallet for new user
     wallets.add(
       caller,
       {
@@ -505,10 +545,10 @@ actor {
       },
     );
 
-    // --- Grant #user role so the new member can access all user APIs ---
+    // Grant #user role so the new member can access all user APIs
     accessControlState.userRoles.add(caller, #user);
 
-    // --- Auto income distribution on join ---
+    // Auto income distribution on join
     autoDistributeOnJoin(caller, sponsorId);
 
     caller;
@@ -522,43 +562,52 @@ actor {
     users.get(userId);
   };
 
-  // Get all users - Admin only
+  // Get all users - Admin only.
+  // Falls back to checking the users map directly if accessControlState was
+  // not yet restored (e.g. first call after a fresh deploy before postupgrade runs).
   public query ({ caller }) func getAllUsers() : async [User] {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+    // Primary check: Caffeine/mixin admin
+    let caffineAdmin = AccessControl.isAdmin(accessControlState, caller);
+    // Fallback: the caller is the ADMIN001 holder in the users map
+    let mapAdmin = switch (users.get(caller)) {
+      case (?u) {
+        switch (u.sponsorCode) {
+          case (?code) { code == "ADMIN001" };
+          case null { false };
+        };
+      };
+      case null { false };
+    };
+    if (not caffineAdmin and not mapAdmin) {
       Runtime.trap("Unauthorized: Only admins can view all users");
     };
-    users.values().toArray().sort();
+    users.values().toArray();
   };
 
-  // Create first admin - Sets up GUCCORA Admin as the root of the binary tree.
-  // Can be called as long as ADMIN001 does not already exist in the users table.
-  // This allows re-seeding after upgrades or on fresh deployments.
+  // Create first admin
   public shared ({ caller }) func createFirstAdmin() : async () {
-    // Block if ADMIN001 already exists to prevent duplicates
     if (admin001Exists()) {
       Runtime.trap("Admin already exists");
     };
-    // Block if caller is already registered as a regular user
     if (users.containsKey(caller) and not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Caller is already registered as a regular user");
     };
-    // Create the GUCCORA Admin user record
     let adminUser : User = {
       userId = caller;
       username = "admin";
       fullName = "GUCCORA Admin";
       email = "admin@guccora.com";
       phone = "";
-      sponsorId = caller; // Root node: self-sponsored
+      sponsorId = caller;
       position = #left;
       joinDate = Time.now();
-      rank = #diamond; // Super Admin rank
+      rank = #diamond;
       isActive = true;
       leftChild = null;
       rightChild = null;
       leftVolume = 0;
       rightVolume = 0;
-      sponsorCode = ?"ADMIN001"; // Canonical sponsor code for tree root
+      sponsorCode = ?"ADMIN001";
     };
     users.add(caller, adminUser);
     wallets.add(
@@ -571,19 +620,14 @@ actor {
         withdrawnAmount = 0;
       },
     );
-    // Grant Super Admin role in the access control system
     accessControlState.userRoles.add(caller, #admin);
     accessControlState.adminAssigned := true;
   };
 
-  // Check whether the root admin (ADMIN001) has been configured.
-  // Public query — no authentication required.
   public query func isAdminConfigured() : async Bool {
     admin001Exists();
   };
 
-  // Sponsor code lookup - public, no auth required
-  // Used during registration to resolve ADMIN001 -> admin principal
   public query func lookupSponsorByCode(code : Text) : async ?Principal {
     let usersArray = users.toArray();
     for ((principal, user) in usersArray.values()) {
@@ -599,12 +643,10 @@ actor {
     null;
   };
 
-  // Package management - Anyone can view packages
   public query ({ caller }) func getAllPackages() : async [Package] {
     packages.values().toArray();
   };
 
-  // Add package - Admin only
   public shared ({ caller }) func addPackage(name : Text, price : Nat, benefits : Text) : async Nat {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can add packages");
@@ -620,7 +662,6 @@ actor {
     packageId;
   };
 
-  // Purchase package - Users only
   public shared ({ caller }) func purchasePackage(packageId : Nat) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can purchase packages");
@@ -633,7 +674,6 @@ actor {
     };
     packagePurchases.put(0, (caller, packageId));
 
-    // --- Auto income distribution on plan activation ---
     switch (packages.get(packageId)) {
       case null {};
       case (?pkg) {
@@ -642,12 +682,10 @@ actor {
     };
   };
 
-  // Announcements - Anyone can view
   public query ({ caller }) func getAllAnnouncements() : async [Announcement] {
     announcements.values().toArray();
   };
 
-  // Add announcement - Admin only
   public shared ({ caller }) func addAnnouncement(title : Text, content : Text) : async () {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can add announcements");
@@ -662,7 +700,6 @@ actor {
     announcements.add(announcementId, announcement);
   };
 
-  // Wallet functions - Users can only view their own wallet, admins can view any
   public query ({ caller }) func getUserWallet(userId : Principal) : async ?Wallet {
     if (caller != userId and not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Can only view your own wallet or be an admin");
@@ -670,7 +707,6 @@ actor {
     wallets.get(userId);
   };
 
-  // Get caller's wallet - Users only
   public query ({ caller }) func getMyWallet() : async ?Wallet {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view wallets");
@@ -678,7 +714,6 @@ actor {
     wallets.get(caller);
   };
 
-  // Transaction functions - Users can only view their own transactions, admins can view any
   public query ({ caller }) func getUserTransactions(userId : Principal) : async [Transaction] {
     if (caller != userId and not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Can only view your own transactions or be an admin");
@@ -688,7 +723,6 @@ actor {
     );
   };
 
-  // Get caller's transactions - Users only
   public query ({ caller }) func getMyTransactions() : async [Transaction] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view transactions");
@@ -698,7 +732,6 @@ actor {
     );
   };
 
-  // Add transaction - Admin only
   public shared ({ caller }) func addTransaction(userId : Principal, amount : Nat, transactionType : TransactionType, relatedUser : ?Principal) : async Text {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can add transactions");
@@ -715,7 +748,6 @@ actor {
     };
     transactions.add(transactionId, transaction);
     
-    // Update wallet for income transactions (not withdrawal or adjustment)
     switch (transactionType) {
       case (#withdrawal) {};
       case (#adjustment) {};
@@ -836,7 +868,6 @@ actor {
     );
   };
 
-  // Withdrawal request - Users can only request for themselves
   public shared ({ caller }) func requestWithdrawal(amount : Nat, paymentMethod : Text, paymentDetails : Text) : async Text {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can request withdrawals");
@@ -866,18 +897,15 @@ actor {
     };
   };
 
-  // Get withdrawal requests - Users can only see their own, admins can see all
   public query ({ caller }) func getWithdrawalRequests(userId : ?Principal) : async [WithdrawalRequest] {
     switch (userId) {
       case null {
-        // Get all requests - Admin only
         if (not (AccessControl.isAdmin(accessControlState, caller))) {
           Runtime.trap("Unauthorized: Only admins can view all withdrawal requests");
         };
         withdrawalRequests.values().toArray();
       };
       case (?uid) {
-        // Get specific user's requests
         if (caller != uid and not AccessControl.isAdmin(accessControlState, caller)) {
           Runtime.trap("Unauthorized: Can only view your own withdrawal requests or be an admin");
         };
@@ -888,7 +916,6 @@ actor {
     };
   };
 
-  // Approve/reject withdrawal - Admin only
   public shared ({ caller }) func processWithdrawalRequest(requestId : Text, approve : Bool) : async () {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can process withdrawal requests");
@@ -913,7 +940,6 @@ actor {
         };
         withdrawalRequests.add(requestId, updatedRequest);
         if (approve) {
-          // Update wallet
           switch (wallets.get(request.userId)) {
             case null {};
             case (?wallet) {
@@ -932,7 +958,6 @@ actor {
     };
   };
 
-  // Update user rank - Admin only
   public shared ({ caller }) func updateUserRank(userId : Principal, newRank : Rank) : async () {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can update user ranks");
@@ -964,7 +989,6 @@ actor {
     };
   };
 
-  // Activate/deactivate user - Admin only
   public shared ({ caller }) func setUserActiveStatus(userId : Principal, isActive : Bool) : async () {
     if (not (AccessControl.isAdmin(accessControlState, caller))) {
       Runtime.trap("Unauthorized: Only admins can change user active status");
@@ -996,7 +1020,6 @@ actor {
     };
   };
 
-  // Get global stats - Admin only
   public query ({ caller }) func getGlobalStats() : async {
     totalUsers : Nat;
     activeUsers : Nat;

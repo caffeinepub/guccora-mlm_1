@@ -129,6 +129,33 @@ actor {
     totalIncome : Nat;
   };
 
+  // ── MOBILE USER TYPE ──────────────────────────────────────────────────────
+  public type MobileUser = {
+    userId : Text;        // e.g. "GC1001"
+    fullName : Text;
+    phone : Text;
+    password : Text;      // stored as-is for demo
+    sponsorCode : Text;   // defaults to "ADMIN001"
+    joinDate : Time.Time;
+    isActive : Bool;
+    walletBalance : Nat;
+    totalEarnings : Nat;
+  };
+  // ── END MOBILE USER TYPE ──────────────────────────────────────────────────
+
+
+  // ── BANK DETAILS TYPE ────────────────────────────────────────────────────
+  public type BankDetails = {
+    phone : Text;
+    accountHolderName : Text;
+    bankName : Text;
+    accountNumber : Text;
+    ifscCode : Text;
+    upiId : Text;
+    branchName : Text;
+  };
+  // ── END BANK DETAILS TYPE ────────────────────────────────────────────────
+
   module User {
     public func compare(a : User, b : User) : Order.Order {
       principalToText(a.userId).compare(principalToText(b.userId));
@@ -161,6 +188,13 @@ actor {
   var nextWithdrawalId : Nat = 0;
   var nextAnnouncementId : Nat = 0;
 
+  // Mobile users store (indexed by phone number)
+  let mobileUsers = Map.empty<Text, MobileUser>();
+  var nextMobileUserId : Nat = 1001;
+
+  // Bank details store (indexed by phone number)
+  let bankDetailsStore = Map.empty<Text, BankDetails>();
+
   // ── STABLE STORAGE (persists data across canister upgrades) ──────────────
   stable var _usersStable : [(Principal, User)] = [];
   stable var _walletsStable : [(Principal, Wallet)] = [];
@@ -171,7 +205,10 @@ actor {
   stable var _nextTransactionIdStable : Nat = 0;
   stable var _nextWithdrawalIdStable : Nat = 0;
   stable var _nextAnnouncementIdStable : Nat = 0;
-  stable var _adminPassword : Text = "admin123";
+  stable var _adminPassword : Text = "Admin@123";
+  stable var _mobileUsersStable : [(Text, MobileUser)] = [];
+  stable var _bankDetailsStable : [(Text, BankDetails)] = [];
+  stable var _nextMobileUserIdStable : Nat = 1001;
 
   // Serialize all Maps into stable arrays before the upgrade wasm swap.
   system func preupgrade() {
@@ -184,6 +221,9 @@ actor {
     _nextTransactionIdStable := nextTransactionId;
     _nextWithdrawalIdStable := nextWithdrawalId;
     _nextAnnouncementIdStable := nextAnnouncementId;
+    _mobileUsersStable := mobileUsers.toArray();
+    _nextMobileUserIdStable := nextMobileUserId;
+    _bankDetailsStable := bankDetailsStore.toArray();
   };
 
   // Restore Maps from stable arrays after the upgrade and re-grant roles.
@@ -197,6 +237,9 @@ actor {
     nextTransactionId := _nextTransactionIdStable;
     nextWithdrawalId := _nextWithdrawalIdStable;
     nextAnnouncementId := _nextAnnouncementIdStable;
+    for ((k, v) in _mobileUsersStable.values()) { mobileUsers.add(k, v) };
+    for ((k, v) in _bankDetailsStable.values()) { bankDetailsStore.add(k, v) };
+    nextMobileUserId := _nextMobileUserIdStable;
 
     // Re-grant access control roles from the restored users data.
     // The admin is whoever holds sponsorCode == "ADMIN001".
@@ -219,9 +262,6 @@ actor {
   // ── END STABLE STORAGE ────────────────────────────────────────────────────
 
   // ── ADMIN CHECK HELPER ────────────────────────────────────────────────────
-  // Checks both the Caffeine accessControlState AND the users map (sponsorCode
-  // == "ADMIN001") so admin actions work even when accessControlState has not
-  // yet been restored from stable storage in the current session.
   func isAdminCaller(caller : Principal) : Bool {
     if (AccessControl.isAdmin(accessControlState, caller)) { return true };
     switch (users.get(caller)) {
@@ -372,6 +412,115 @@ actor {
     };
   };
   // ── END AUTO INCOME DISTRIBUTION ─────────────────────────────────────────
+
+  // ── MOBILE USER FUNCTIONS ─────────────────────────────────────────────────
+
+  // Register a new mobile user (no auth required — OTP handled on frontend)
+  public shared func registerMobileUser(
+    fullName : Text,
+    phone : Text,
+    password : Text,
+    sponsorCode : Text,
+  ) : async Text {
+    if (fullName.size() < 2) {
+      Runtime.trap("Full name is required");
+    };
+    if (phone.size() < 10) {
+      Runtime.trap("Valid mobile number is required");
+    };
+    if (password.size() < 6) {
+      Runtime.trap("Password must be at least 6 characters");
+    };
+    if (mobileUsers.containsKey(phone)) {
+      Runtime.trap("This mobile number is already registered. Please login instead.");
+    };
+    let userId = "GC" # nextMobileUserId.toText();
+    nextMobileUserId += 1;
+    let sc = if (sponsorCode.size() == 0) { "ADMIN001" } else { sponsorCode };
+    let newUser : MobileUser = {
+      userId;
+      fullName;
+      phone;
+      password;
+      sponsorCode = sc;
+      joinDate = Time.now();
+      isActive = true;
+      walletBalance = 0;
+      totalEarnings = 0;
+    };
+    mobileUsers.add(phone, newUser);
+    userId;
+  };
+
+  // Look up a mobile user profile by phone (public — no sensitive data exposed)
+  public query func getMobileUserByPhone(phone : Text) : async ?{
+    userId : Text;
+    fullName : Text;
+    phone : Text;
+    sponsorCode : Text;
+    joinDate : Time.Time;
+    isActive : Bool;
+    walletBalance : Nat;
+    totalEarnings : Nat;
+  } {
+    switch (mobileUsers.get(phone)) {
+      case null { null };
+      case (?u) {
+        ?{
+          userId = u.userId;
+          fullName = u.fullName;
+          phone = u.phone;
+          sponsorCode = u.sponsorCode;
+          joinDate = u.joinDate;
+          isActive = u.isActive;
+          walletBalance = u.walletBalance;
+          totalEarnings = u.totalEarnings;
+        };
+      };
+    };
+  };
+
+  // Verify mobile login credentials — returns profile if valid
+  public query func verifyMobileLogin(phone : Text, password : Text) : async ?{
+    userId : Text;
+    fullName : Text;
+    phone : Text;
+    sponsorCode : Text;
+    joinDate : Time.Time;
+    isActive : Bool;
+    walletBalance : Nat;
+    totalEarnings : Nat;
+  } {
+    switch (mobileUsers.get(phone)) {
+      case null { null };
+      case (?u) {
+        if (u.password == password) {
+          ?{
+            userId = u.userId;
+            fullName = u.fullName;
+            phone = u.phone;
+            sponsorCode = u.sponsorCode;
+            joinDate = u.joinDate;
+            isActive = u.isActive;
+            walletBalance = u.walletBalance;
+            totalEarnings = u.totalEarnings;
+          };
+        } else {
+          null;
+        };
+      };
+    };
+  };
+
+  // Get all mobile users — admin only
+  public query ({ caller }) func getAllMobileUsers() : async [MobileUser] {
+    if (not isAdminCaller(caller)) {
+      Runtime.trap("Unauthorized: Only admins can view all mobile users");
+    };
+    mobileUsers.values().toArray();
+  };
+
+  // ── END MOBILE USER FUNCTIONS ─────────────────────────────────────────────
 
   // User Profile Functions (Required by Frontend)
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
@@ -630,11 +779,9 @@ actor {
   };
 
   // Allow any authenticated IC principal to claim admin by providing the password.
-  // This links the caller principal to ADMIN001 so backend actions work.
   public shared ({ caller }) func loginAsAdmin(password : Text) : async Bool {
     if (caller.isAnonymous()) { return false };
     if (password != _adminPassword) { return false };
-    // Create or update admin entry for this principal
     if (not users.containsKey(caller)) {
       let adminUser : User = {
         userId = caller;
@@ -662,7 +809,6 @@ actor {
         withdrawnAmount = 0;
       });
     } else {
-      // Update existing entry to have ADMIN001 sponsorCode
       switch (users.get(caller)) {
         case (?u) {
           let updated : User = {
@@ -687,7 +833,6 @@ actor {
         case null {};
       };
     };
-    // Grant admin role in access control
     accessControlState.userRoles.add(caller, #admin);
     accessControlState.adminAssigned := true;
     true;
@@ -1104,9 +1249,44 @@ actor {
       totalPaid += wallet.withdrawnAmount;
     };
     {
-      totalUsers = users.size();
-      activeUsers = activeCount;
+      totalUsers = users.size() + mobileUsers.size();
+      activeUsers = activeCount + mobileUsers.values().toArray().filter(func(u : MobileUser) : Bool { u.isActive }).size();
       totalPaidOut = totalPaid;
     };
   };
+  // ── BANK DETAILS FUNCTIONS ───────────────────────────────────────────────
+  public shared func saveBankDetails(
+    phone : Text,
+    accountHolderName : Text,
+    bankName : Text,
+    accountNumber : Text,
+    ifscCode : Text,
+    upiId : Text,
+    branchName : Text,
+  ) : async () {
+    let details : BankDetails = {
+      phone;
+      accountHolderName;
+      bankName;
+      accountNumber;
+      ifscCode;
+      upiId;
+      branchName;
+    };
+    bankDetailsStore.add(phone, details);
+  };
+
+  public query func getBankDetailsByPhone(phone : Text) : async ?BankDetails {
+    bankDetailsStore.get(phone);
+  };
+
+  public query ({ caller }) func getAdminBankDetails(phone : Text) : async ?BankDetails {
+    if (not isAdminCaller(caller)) {
+      Runtime.trap("Unauthorized: Only admins can view bank details");
+    };
+    bankDetailsStore.get(phone);
+  };
+  // ── END BANK DETAILS FUNCTIONS ───────────────────────────────────────────
+
+
 };

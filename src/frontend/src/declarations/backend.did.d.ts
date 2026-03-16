@@ -22,6 +22,27 @@ export interface IncomeStats {
   'directReferral' : bigint,
   'binaryPair' : bigint,
 }
+export interface MobileUser {
+  'userId' : string,
+  'fullName' : string,
+  'phone' : string,
+  'password' : string,
+  'sponsorCode' : string,
+  'joinDate' : Time,
+  'isActive' : boolean,
+  'walletBalance' : bigint,
+  'totalEarnings' : bigint,
+}
+export interface MobileUserPublic {
+  'userId' : string,
+  'fullName' : string,
+  'phone' : string,
+  'sponsorCode' : string,
+  'joinDate' : Time,
+  'isActive' : boolean,
+  'walletBalance' : bigint,
+  'totalEarnings' : bigint,
+}
 export interface Package {
   'id' : bigint,
   'name' : string,
@@ -122,6 +143,7 @@ export interface _SERVICE {
   'createFirstAdmin' : ActorMethod<[], undefined>,
   'loginAsAdmin' : ActorMethod<[string], boolean>,
   'getAllAnnouncements' : ActorMethod<[], Array<Announcement>>,
+  'getAllMobileUsers' : ActorMethod<[], Array<MobileUser>>,
   'getAllPackages' : ActorMethod<[], Array<Package>>,
   'getAllUsers' : ActorMethod<[], Array<User>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
@@ -131,6 +153,7 @@ export interface _SERVICE {
     { 'activeUsers' : bigint, 'totalPaidOut' : bigint, 'totalUsers' : bigint }
   >,
   'getIncomeStats' : ActorMethod<[Principal], IncomeStats>,
+  'getMobileUserByPhone' : ActorMethod<[string], [] | [MobileUserPublic]>,
   'getMyIncomeStats' : ActorMethod<[], IncomeStats>,
   'getMyTransactions' : ActorMethod<[], Array<Transaction>>,
   'getMyWallet' : ActorMethod<[], [] | [Wallet]>,
@@ -148,6 +171,7 @@ export interface _SERVICE {
   'lookupSponsorByCode' : ActorMethod<[string], [] | [Principal]>,
   'processWithdrawalRequest' : ActorMethod<[string, boolean], undefined>,
   'purchasePackage' : ActorMethod<[bigint], undefined>,
+  'registerMobileUser' : ActorMethod<[string, string, string, string], string>,
   'registerUser' : ActorMethod<
     [string, string, string, string, Principal, Position, [] | [string]],
     Principal
@@ -156,6 +180,7 @@ export interface _SERVICE {
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'setUserActiveStatus' : ActorMethod<[Principal, boolean], undefined>,
   'updateUserRank' : ActorMethod<[Principal, Rank], undefined>,
+  'verifyMobileLogin' : ActorMethod<[string, string], [] | [MobileUserPublic]>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

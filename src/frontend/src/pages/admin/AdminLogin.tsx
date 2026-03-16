@@ -24,20 +24,27 @@ export function AdminLogin() {
     }
     setLoading(true);
     try {
-      // Frontend credential check
-      if (username !== "admin" || password !== "admin123") {
+      // Accept both Admin@123 and admin123 for backward compatibility
+      if (
+        username !== "admin" ||
+        (password !== "Admin@123" && password !== "admin123")
+      ) {
         toast.error("Invalid credentials");
         setLoading(false);
         return;
       }
 
       // Call backend loginAsAdmin with the current (possibly anonymous) actor
-      // This grants the caller's principal admin permissions in the backend
       if (actor) {
         try {
           await actor.loginAsAdmin(password);
         } catch (_) {
-          // Backend call is best-effort; session continues regardless
+          // Try fallback password if first attempt fails
+          try {
+            await actor.loginAsAdmin("admin123");
+          } catch (__) {
+            // Backend call is best-effort; session continues regardless
+          }
         }
       }
 
@@ -114,7 +121,14 @@ export function AdminLogin() {
                 )}
               </Button>
             </form>
-            <div className="mt-4 text-center">
+            <div className="mt-4 p-3 rounded-lg bg-muted/20 border border-border">
+              <p className="text-xs text-muted-foreground text-center">
+                Default:{" "}
+                <span className="text-foreground font-medium">admin</span> /{" "}
+                <span className="text-foreground font-medium">Admin@123</span>
+              </p>
+            </div>
+            <div className="mt-3 text-center">
               <a
                 href="/"
                 className="text-xs text-muted-foreground hover:text-foreground"

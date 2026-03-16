@@ -11,6 +11,7 @@ import {
   Menu,
   Network,
   Package,
+  ShoppingBag,
   Users,
   X,
 } from "lucide-react";
@@ -22,6 +23,7 @@ const adminNavItems = [
   { to: "/admin/withdrawals", label: "Withdrawals", icon: CreditCard },
   { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
   { to: "/admin/packages", label: "Packages", icon: Package },
+  { to: "/admin/products", label: "Products", icon: ShoppingBag },
   { to: "/admin/income", label: "Income Distribution", icon: DollarSign },
   { to: "/admin/tree", label: "Tree View", icon: Network },
 ];

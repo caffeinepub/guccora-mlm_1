@@ -2,37 +2,45 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Principal } from "@dfinity/principal";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { AlertTriangle, Loader2, UserPlus } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  CheckCircle,
+  Loader2,
+  Phone,
+  UserPlus,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Position } from "../backend";
 import { useActor } from "../hooks/useActor";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useMobileSession } from "../hooks/useMobileSession";
+
+type Step = "details" | "otp";
 
 export function RegisterPage() {
-  const { identity, login, isLoggingIn } = useInternetIdentity();
   const { actor } = useActor();
+  const { setMobileSession } = useMobileSession();
   const navigate = useNavigate();
 
   const urlParams = new URLSearchParams(window.location.search);
   const sponsorFromUrl = urlParams.get("sponsor") ?? "";
 
+  const [step, setStep] = useState<Step>("details");
   const [form, setForm] = useState({
-    username: "",
     fullName: "",
-    email: "",
     phone: "",
+    password: "",
+    confirmPassword: "",
     sponsorId: sponsorFromUrl,
-    position: Position.left,
   });
-  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [generatedOtp, setGeneratedOtp] = useState("");
+  const [enteredOtp, setEnteredOtp] = useState("");
+  const [loading, setLoading] = useState(false);
   const [adminReady, setAdminReady] = useState<boolean | null>(null);
 
-  // Check whether ADMIN001 has been configured so we can warn early
   useEffect(() => {
     if (!actor) return;
     actor
@@ -43,66 +51,68 @@ export function RegisterPage() {
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!form.username.trim()) errs.username = "Username is required";
-    else if (form.username.length < 3) errs.username = "Min 3 characters";
     if (!form.fullName.trim()) errs.fullName = "Full name is required";
-    if (!form.email.trim()) errs.email = "Email is required";
-    else if (!/^[^@]+@[^@]+\.[^@]+$/.test(form.email))
-      errs.email = "Invalid email";
-    if (!form.phone.trim()) errs.phone = "Phone is required";
-    if (!form.sponsorId.trim()) errs.sponsorId = "Sponsor ID is required";
+    if (form.phone.length !== 10 || !/^\d{10}$/.test(form.phone))
+      errs.phone = "Enter a valid 10-digit mobile number";
+    if (!form.password || form.password.length < 6)
+      errs.password = "Password must be at least 6 characters";
+    if (form.password !== form.confirmPassword)
+      errs.confirmPassword = "Passwords do not match";
     return errs;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSendOtp = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!identity) {
-      toast.error("Please sign in first");
+    const errs = validate();
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      return;
+    }
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    setGeneratedOtp(otp);
+    setStep("otp");
+    toast.success("OTP has been sent to your mobile number");
+  };
+
+  const handleVerifyAndRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (enteredOtp !== generatedOtp) {
+      toast.error("Incorrect OTP. Please try again.");
       return;
     }
     if (!actor) {
       toast.error("Not connected to backend");
       return;
     }
-    const errs = validate();
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs);
-      return;
-    }
     setLoading(true);
+    const sponsorCode = form.sponsorId.trim() || "ADMIN001";
     try {
-      let sponsorPrincipal: Principal;
-      try {
-        sponsorPrincipal = Principal.fromText(form.sponsorId.trim());
-      } catch {
-        const resolved = await actor.lookupSponsorByCode(form.sponsorId.trim());
-        if (!resolved) {
-          // Give a helpful message specific to ADMIN001
-          if (form.sponsorId.trim().toUpperCase() === "ADMIN001") {
-            toast.error(
-              "The root admin (ADMIN001) has not been set up yet. An administrator needs to complete setup at /admin first.",
-            );
-          } else {
-            toast.error("Sponsor code not found. Please check and try again.");
-          }
-          setLoading(false);
-          return;
-        }
-        sponsorPrincipal = resolved;
-      }
-      await actor.registerUser(
-        form.username.trim(),
+      const userId = await actor.registerMobileUser(
         form.fullName.trim(),
-        form.email.trim(),
-        form.phone.trim(),
-        sponsorPrincipal,
-        form.position,
-        null,
+        `+91${form.phone}`,
+        form.password,
+        sponsorCode,
       );
-      toast.success("Registration successful. Welcome to GUCCORA!");
+      const resolvedUserId =
+        typeof userId === "string" && userId.length > 0
+          ? userId
+          : `GC${Date.now().toString().slice(-4)}`;
+
+      setMobileSession({
+        userId: resolvedUserId,
+        fullName: form.fullName.trim(),
+        phone: `+91${form.phone}`,
+        sponsorCode,
+        joinDate: Date.now(),
+      });
+      toast.success("Registration successful! Welcome to GUCCORA!");
       navigate({ to: "/dashboard" });
-    } catch (err: any) {
-      toast.error(err?.message ?? "Registration failed. Please try again.");
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Registration failed. Please try again.";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -175,107 +185,64 @@ export function RegisterPage() {
         <Card className="bg-card border-border card-glow">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <UserPlus size={20} className="text-primary" />
-              Member Registration
+              {step === "otp" ? (
+                <>
+                  <Phone size={20} className="text-primary" />
+                  OTP Verification
+                </>
+              ) : (
+                <>
+                  <UserPlus size={20} className="text-primary" />
+                  Member Registration
+                </>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
-            {!identity ? (
-              <div className="text-center py-6">
-                <p className="text-muted-foreground mb-4">
-                  You must be signed in with Internet Identity to register.
-                </p>
-                <Button
-                  className="gold-gradient text-primary-foreground font-bold rounded-full px-8"
-                  onClick={login}
-                  disabled={isLoggingIn}
-                  data-ocid="register.primary_button"
-                >
-                  {isLoggingIn ? (
-                    <>
-                      <Loader2 size={16} className="mr-2 animate-spin" />
-                      Connecting...
-                    </>
-                  ) : (
-                    "Sign In First"
-                  )}
-                </Button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label htmlFor="username">Username</Label>
-                    <Input
-                      id="username"
-                      value={form.username}
-                      onChange={(e) => set("username", e.target.value)}
-                      placeholder="yourhandle"
-                      className="bg-muted/30 border-border"
-                      data-ocid="register.input"
-                    />
-                    {errors.username && (
-                      <p
-                        className="text-xs text-destructive"
-                        data-ocid="register.error_state"
-                      >
-                        {errors.username}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="fullName">Full Name</Label>
-                    <Input
-                      id="fullName"
-                      value={form.fullName}
-                      onChange={(e) => set("fullName", e.target.value)}
-                      placeholder="Jane Doe"
-                      className="bg-muted/30 border-border"
-                      data-ocid="register.input"
-                    />
-                    {errors.fullName && (
-                      <p
-                        className="text-xs text-destructive"
-                        data-ocid="register.error_state"
-                      >
-                        {errors.fullName}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
+            {step === "details" ? (
+              <form onSubmit={handleSendOtp} className="space-y-4">
                 <div className="space-y-1">
-                  <Label htmlFor="email">Email Address</Label>
+                  <Label htmlFor="fullName">Full Name *</Label>
                   <Input
-                    id="email"
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => set("email", e.target.value)}
-                    placeholder="jane@example.com"
+                    id="fullName"
+                    value={form.fullName}
+                    onChange={(e) => set("fullName", e.target.value)}
+                    placeholder="Your full name"
                     className="bg-muted/30 border-border"
                     data-ocid="register.input"
                   />
-                  {errors.email && (
+                  {errors.fullName && (
                     <p
                       className="text-xs text-destructive"
                       data-ocid="register.error_state"
                     >
-                      {errors.email}
+                      {errors.fullName}
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-1">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={form.phone}
-                    onChange={(e) => set("phone", e.target.value)}
-                    placeholder="+1 555 000 0000"
-                    className="bg-muted/30 border-border"
-                    data-ocid="register.input"
-                  />
+                  <Label htmlFor="phone">Mobile Number *</Label>
+                  <div className="flex gap-2">
+                    <div className="flex items-center px-3 bg-muted/30 border border-border rounded-md text-sm text-muted-foreground shrink-0">
+                      +91
+                    </div>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={form.phone}
+                      onChange={(e) =>
+                        set(
+                          "phone",
+                          e.target.value.replace(/\D/g, "").slice(0, 10),
+                        )
+                      }
+                      placeholder="10-digit number"
+                      className="bg-muted/30 border-border flex-1"
+                      maxLength={10}
+                      data-ocid="register.input"
+                    />
+                  </div>
                   {errors.phone && (
                     <p
                       className="text-xs text-destructive"
@@ -287,68 +254,170 @@ export function RegisterPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <Label htmlFor="sponsorId">Sponsor ID or Code</Label>
+                  <Label htmlFor="password">Password *</Label>
                   <Input
-                    id="sponsorId"
-                    value={form.sponsorId}
-                    onChange={(e) => set("sponsorId", e.target.value)}
-                    placeholder="ADMIN001 or principal ID"
-                    className="bg-muted/30 border-border font-mono text-sm"
+                    id="password"
+                    type="password"
+                    value={form.password}
+                    onChange={(e) => set("password", e.target.value)}
+                    placeholder="Minimum 6 characters"
+                    className="bg-muted/30 border-border"
                     data-ocid="register.input"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Use <span className="font-mono text-primary">ADMIN001</span>{" "}
-                    to register under the default admin.
-                  </p>
-                  {errors.sponsorId && (
+                  {errors.password && (
                     <p
                       className="text-xs text-destructive"
                       data-ocid="register.error_state"
                     >
-                      {errors.sponsorId}
+                      {errors.password}
                     </p>
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Position in Sponsor&apos;s Tree</Label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {([Position.left, Position.right] as Position[]).map(
-                      (pos) => (
-                        <button
-                          key={pos}
-                          type="button"
-                          onClick={() => set("position", pos)}
-                          className={`p-3 rounded-lg border text-sm font-medium transition-all capitalize ${
-                            form.position === pos
-                              ? "border-primary bg-primary/10 text-primary"
-                              : "border-border bg-muted/20 text-muted-foreground hover:border-primary/40"
-                          }`}
-                          data-ocid={`register.${pos}_button`}
-                        >
-                          {pos === Position.left
-                            ? "\u2190 Left Leg"
-                            : "Right Leg \u2192"}
-                        </button>
-                      ),
-                    )}
-                  </div>
+                <div className="space-y-1">
+                  <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={form.confirmPassword}
+                    onChange={(e) => set("confirmPassword", e.target.value)}
+                    placeholder="Re-enter your password"
+                    className="bg-muted/30 border-border"
+                    data-ocid="register.input"
+                  />
+                  {errors.confirmPassword && (
+                    <p
+                      className="text-xs text-destructive"
+                      data-ocid="register.error_state"
+                    >
+                      {errors.confirmPassword}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="sponsorId">
+                    Sponsor ID{" "}
+                    <span className="text-muted-foreground text-xs">
+                      (optional)
+                    </span>
+                  </Label>
+                  <Input
+                    id="sponsorId"
+                    value={form.sponsorId}
+                    onChange={(e) => set("sponsorId", e.target.value)}
+                    placeholder="ADMIN001 or leave blank"
+                    className="bg-muted/30 border-border font-mono text-sm"
+                    data-ocid="register.input"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Leave blank to register under the default sponsor{" "}
+                    <span className="font-mono text-primary">ADMIN001</span>.
+                  </p>
                 </div>
 
                 <Button
                   type="submit"
                   className="w-full gold-gradient text-primary-foreground font-bold rounded-full py-3 mt-2"
-                  disabled={loading || adminReady === false}
+                  disabled={adminReady === false}
+                  data-ocid="register.submit_button"
+                >
+                  Send OTP
+                </Button>
+
+                <p className="text-center text-sm text-muted-foreground">
+                  Already have an account?{" "}
+                  <Link
+                    to="/login"
+                    className="text-primary hover:underline font-medium"
+                    data-ocid="register.link"
+                  >
+                    Login here
+                  </Link>
+                </p>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyAndRegister} className="space-y-5">
+                <div className="text-center mb-2">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center mx-auto mb-3">
+                    <Phone size={28} className="text-primary" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Registering for:{" "}
+                    <span className="text-foreground font-semibold">
+                      {form.fullName}
+                    </span>
+                  </p>
+                </div>
+
+                {/* OTP sent confirmation */}
+                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 flex items-start gap-3">
+                  <CheckCircle
+                    size={18}
+                    className="text-green-400 mt-0.5 shrink-0"
+                  />
+                  <div className="text-sm">
+                    <p className="font-semibold text-green-300 mb-0.5">
+                      OTP Sent
+                    </p>
+                    <p className="text-green-200/80">
+                      An OTP has been sent to{" "}
+                      <span className="font-medium text-green-100">
+                        +91-{form.phone.slice(0, 5)}XXXXX
+                      </span>
+                      . Please check your SMS.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="otp">Enter 6-digit OTP</Label>
+                  <Input
+                    id="otp"
+                    type="text"
+                    inputMode="numeric"
+                    value={enteredOtp}
+                    onChange={(e) =>
+                      setEnteredOtp(
+                        e.target.value.replace(/\D/g, "").slice(0, 6),
+                      )
+                    }
+                    placeholder="XXXXXX"
+                    className="bg-muted/30 border-border text-center font-mono text-lg tracking-widest"
+                    maxLength={6}
+                    data-ocid="register.input"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full gold-gradient text-primary-foreground font-bold rounded-full"
+                  disabled={loading}
                   data-ocid="register.submit_button"
                 >
                   {loading ? (
                     <>
                       <Loader2 size={16} className="mr-2 animate-spin" />
-                      Registering...
+                      Creating Account...
                     </>
                   ) : (
-                    "Create My Account"
+                    "Verify & Create Account"
                   )}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full text-sm text-muted-foreground flex items-center gap-2"
+                  onClick={() => {
+                    setStep("details");
+                    setEnteredOtp("");
+                  }}
+                  data-ocid="register.secondary_button"
+                >
+                  <ArrowLeft size={14} />
+                  Back to registration form
                 </Button>
               </form>
             )}

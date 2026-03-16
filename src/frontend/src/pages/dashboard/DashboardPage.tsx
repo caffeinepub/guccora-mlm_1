@@ -3,6 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowUpRight,
+  Gift,
   GitBranch,
   Megaphone,
   TrendingUp,
@@ -12,7 +13,6 @@ import {
 import { motion } from "motion/react";
 import { useEffect } from "react";
 import { RankBadge } from "../../components/shared/RankBadge";
-import { useInternetIdentity } from "../../hooks/useInternetIdentity";
 import { useMobileSession } from "../../hooks/useMobileSession";
 import {
   useAnnouncements,
@@ -28,7 +28,6 @@ import {
 } from "../../lib/formatters";
 
 export function DashboardPage() {
-  const { identity } = useInternetIdentity();
   const { mobileSession } = useMobileSession();
   const navigate = useNavigate();
   const { data: profile, isLoading: profileLoading } = useMyProfile();
@@ -37,11 +36,9 @@ export function DashboardPage() {
   const { data: announcements } = useAnnouncements();
   const { data: incomeStats, isLoading: incomeLoading } = useMyIncomeStats();
 
-  const isLoggedIn = !!identity || !!mobileSession?.isLoggedIn;
-
   useEffect(() => {
-    if (!isLoggedIn) navigate({ to: "/login" });
-  }, [isLoggedIn, navigate]);
+    if (!mobileSession?.isLoggedIn) navigate({ to: "/login" });
+  }, [mobileSession, navigate]);
 
   const recentTx = (transactions ?? []).slice(0, 5);
 
@@ -51,9 +48,8 @@ export function DashboardPage() {
     return s[key] ?? 0n;
   };
 
-  const displayName = mobileSession?.isLoggedIn
-    ? mobileSession.name
-    : (profile?.fullName ?? "Member");
+  const displayName = mobileSession?.fullName ?? profile?.fullName ?? "Member";
+  const isProfileLoading = profileLoading && !mobileSession;
 
   return (
     <div className="space-y-6">
@@ -66,9 +62,14 @@ export function DashboardPage() {
             <h1 className="font-display text-2xl font-bold">
               Welcome back,{" "}
               <span className="gold-gradient-text">
-                {profileLoading && !mobileSession ? "..." : displayName}
+                {isProfileLoading ? "..." : displayName}
               </span>
             </h1>
+            {mobileSession?.userId && (
+              <p className="text-muted-foreground text-xs mt-0.5 font-mono">
+                ID: {mobileSession.userId}
+              </p>
+            )}
             <p className="text-muted-foreground text-sm mt-1">
               Here&apos;s your network overview.
             </p>
@@ -156,8 +157,8 @@ export function DashboardPage() {
         ))}
       </div>
 
-      {/* Income breakdown */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Income breakdown — 4 cards including Bonus */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
             label: "Direct Referral Income",
@@ -173,6 +174,11 @@ export function DashboardPage() {
             label: "Level Income",
             key: "levelIncome",
             icon: TrendingUp,
+          },
+          {
+            label: "Bonus Income",
+            key: "bonusIncome",
+            icon: Gift,
           },
         ].map((item, i) => (
           <motion.div

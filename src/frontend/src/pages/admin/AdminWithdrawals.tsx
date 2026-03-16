@@ -94,8 +94,8 @@ export function AdminWithdrawals() {
                     <th className="text-left text-muted-foreground font-medium px-5 py-3 hidden md:table-cell">
                       Method
                     </th>
-                    <th className="text-left text-muted-foreground font-medium px-5 py-3 hidden lg:table-cell">
-                      Details
+                    <th className="text-left text-muted-foreground font-medium px-5 py-3 hidden md:table-cell">
+                      Payment / Bank Details
                     </th>
                     <th className="text-left text-muted-foreground font-medium px-5 py-3">
                       Date
@@ -120,8 +120,21 @@ export function AdminWithdrawals() {
                       <td className="px-5 py-3 hidden md:table-cell">
                         {req.paymentMethod}
                       </td>
-                      <td className="px-5 py-3 hidden lg:table-cell text-muted-foreground max-w-[150px] truncate">
-                        {req.paymentDetails}
+                      <td className="px-5 py-3 hidden md:table-cell">
+                        {req.paymentDetails ? (
+                          <div className="max-w-[180px]">
+                            <p className="text-xs text-foreground font-medium truncate">
+                              {req.paymentDetails}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {req.paymentMethod}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">
+                            No details provided
+                          </span>
+                        )}
                       </td>
                       <td className="px-5 py-3 text-muted-foreground">
                         {formatDate(req.requestDate)}

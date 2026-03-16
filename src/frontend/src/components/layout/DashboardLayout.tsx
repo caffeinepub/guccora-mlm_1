@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
+  Building2,
   ChevronRight,
+  CreditCard,
   GitBranch,
   LayoutDashboard,
   LogOut,
@@ -15,10 +16,10 @@ import {
   Wallet,
   X,
 } from "lucide-react";
-import { useState } from "react";
-import { useInternetIdentity } from "../../hooks/useInternetIdentity";
-import { useIsAdmin, useMyProfile, useMyWallet } from "../../hooks/useQueries";
-import { formatICP } from "../../lib/formatters";
+import { useEffect, useState } from "react";
+import { useMobileSession } from "../../hooks/useMobileSession";
+import { useIsAdmin, useMyWallet } from "../../hooks/useQueries";
+import { formatRupees } from "../../lib/formatters";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -27,12 +28,12 @@ const navItems = [
   { to: "/income", label: "Income", icon: TrendingUp },
   { to: "/packages", label: "Packages", icon: Package },
   { to: "/referrals", label: "Referrals", icon: Users },
+  { to: "/dashboard/bank-details", label: "Bank Details", icon: Building2 },
   { to: "/profile", label: "Profile", icon: User },
 ];
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { clear } = useInternetIdentity();
-  const { data: profile, isLoading: profileLoading } = useMyProfile();
+  const { mobileSession, clearMobileSession } = useMobileSession();
   const { data: wallet } = useMyWallet();
   const { data: isAdmin } = useIsAdmin();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -40,10 +41,20 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const currentPath = routerState.location.pathname;
 
+  useEffect(() => {
+    if (!mobileSession?.isLoggedIn) {
+      navigate({ to: "/login" });
+    }
+  }, [mobileSession, navigate]);
+
   const handleLogout = () => {
-    clear();
+    clearMobileSession();
     navigate({ to: "/" });
   };
+
+  const displayName = mobileSession?.fullName ?? "Member";
+  const userInitials = displayName.slice(0, 2).toUpperCase();
+  const userId = mobileSession?.userId ?? "";
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -63,19 +74,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       <div className="p-4 border-b border-border">
         <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
           <div className="h-10 w-10 rounded-full gold-gradient flex items-center justify-center text-primary-foreground font-bold text-sm">
-            {profile?.username?.slice(0, 2).toUpperCase() ?? "??"}
+            {userInitials}
           </div>
           <div className="flex-1 min-w-0">
-            {profileLoading ? (
-              <Skeleton className="h-4 w-24 mb-1" />
-            ) : (
-              <p className="text-sm font-semibold truncate">
-                {profile?.fullName ?? "Loading..."}
+            <p className="text-sm font-semibold truncate">{displayName}</p>
+            {userId && (
+              <p className="text-xs text-primary font-medium">{userId}</p>
+            )}
+            {wallet && (
+              <p className="text-xs text-muted-foreground">
+                {formatRupees(wallet.availableBalance)}
               </p>
             )}
-            <p className="text-xs text-primary font-medium">
-              {wallet ? formatICP(wallet.availableBalance) : "0.00 ICP"}
-            </p>
           </div>
         </div>
       </div>
@@ -177,11 +187,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <div className="hidden sm:flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">Balance:</span>
               <span className="font-semibold text-primary">
-                {wallet ? formatICP(wallet.availableBalance) : "—"}
+                {wallet ? formatRupees(wallet.availableBalance) : "—"}
               </span>
             </div>
             <div className="h-8 w-8 rounded-full gold-gradient flex items-center justify-center text-primary-foreground text-xs font-bold">
-              {profile?.username?.slice(0, 2).toUpperCase() ?? "??"}
+              {userInitials}
             </div>
           </div>
         </header>

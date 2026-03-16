@@ -227,6 +227,7 @@ export interface backendInterface {
     processWithdrawalRequest(requestId: string, approve: boolean): Promise<void>;
     purchasePackage(packageId: bigint): Promise<void>;
     registerUser(username: string, fullName: string, email: string, phone: string, sponsorId: Principal, position: Position, sponsorCode: string | null): Promise<Principal>;
+    registerMobileUser(fullName: string, phone: string, password: string, sponsorCode: string): Promise<string>;
     requestWithdrawal(amount: bigint, paymentMethod: string, paymentDetails: string): Promise<string>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     setUserActiveStatus(userId: Principal, isActive: boolean): Promise<void>;
@@ -684,6 +685,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.registerUser(arg0, arg1, arg2, arg3, arg4, to_candid_Position_n33(this._uploadFile, this._downloadFile, arg5), to_candid_opt_n35(this._uploadFile, this._downloadFile, arg6));
+            return result;
+        }
+    }
+    async registerMobileUser(arg0: string, arg1: string, arg2: string, arg3: string): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.registerMobileUser(arg0, arg1, arg2, arg3);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.registerMobileUser(arg0, arg1, arg2, arg3);
             return result;
         }
     }

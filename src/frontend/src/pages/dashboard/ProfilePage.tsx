@@ -8,31 +8,31 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { UserProfile } from "../../backend";
 import { RankBadge } from "../../components/shared/RankBadge";
-import { useInternetIdentity } from "../../hooks/useInternetIdentity";
+import { useMobileSession } from "../../hooks/useMobileSession";
 import { useMyProfile, useSaveProfile } from "../../hooks/useQueries";
 
 export function ProfilePage() {
-  const { identity } = useInternetIdentity();
+  const { mobileSession } = useMobileSession();
   const { data: profile, isLoading } = useMyProfile();
   const saveProfileMutation = useSaveProfile();
 
   const [form, setForm] = useState({
     username: "",
-    fullName: "",
+    fullName: mobileSession?.fullName ?? "",
     email: "",
-    phone: "",
+    phone: mobileSession?.phone ?? "",
   });
 
   useEffect(() => {
     if (profile) {
       setForm({
         username: profile.username,
-        fullName: profile.fullName,
+        fullName: profile.fullName || mobileSession?.fullName || "",
         email: profile.email,
-        phone: profile.phone,
+        phone: profile.phone || mobileSession?.phone || "",
       });
     }
-  }, [profile]);
+  }, [profile, mobileSession]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +52,9 @@ export function ProfilePage() {
     }
   };
 
+  const displayName = form.fullName || mobileSession?.fullName || "Member";
+  const initials = displayName.slice(0, 2).toUpperCase();
+
   return (
     <div className="space-y-6 max-w-2xl">
       <h1 className="font-display text-2xl font-bold flex items-center gap-3">
@@ -63,7 +66,7 @@ export function ProfilePage() {
         <CardHeader>
           <div className="flex items-center gap-4">
             <div className="h-16 w-16 rounded-full gold-gradient flex items-center justify-center text-primary-foreground font-bold text-xl">
-              {form.username.slice(0, 2).toUpperCase() || "??"}
+              {initials}
             </div>
             <div>
               {isLoading ? (
@@ -74,8 +77,13 @@ export function ProfilePage() {
               ) : (
                 <>
                   <h2 className="font-display text-lg font-bold">
-                    {form.fullName}
+                    {displayName}
                   </h2>
+                  {mobileSession?.userId && (
+                    <p className="text-xs text-primary font-mono mt-0.5">
+                      {mobileSession.userId}
+                    </p>
+                  )}
                   {profile && (
                     <RankBadge rank={profile.rank} size="md" className="mt-1" />
                   )}
@@ -142,11 +150,11 @@ export function ProfilePage() {
                 />
               </div>
 
-              {identity && (
+              {mobileSession?.sponsorCode && (
                 <div className="space-y-1">
-                  <Label>Principal ID</Label>
-                  <div className="px-3 py-2 bg-muted/20 border border-border rounded-md font-mono text-xs text-muted-foreground break-all">
-                    {identity.getPrincipal().toString()}
+                  <Label>Sponsor Code</Label>
+                  <div className="px-3 py-2 bg-muted/20 border border-border rounded-md font-mono text-sm text-muted-foreground">
+                    {mobileSession.sponsorCode}
                   </div>
                 </div>
               )}

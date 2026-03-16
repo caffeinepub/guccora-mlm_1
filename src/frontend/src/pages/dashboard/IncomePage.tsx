@@ -14,6 +14,7 @@ import {
   BarChart3,
   CheckCircle2,
   Clock,
+  Gift,
   GitBranch,
   TrendingUp,
   Users,
@@ -98,6 +99,14 @@ const statCards = [
     iconColor: "text-amber-400",
     borderColor: "border-amber-500/20",
   },
+  {
+    key: "bonusIncome",
+    label: "Bonus Income",
+    icon: Gift,
+    gradient: "from-amber-900/30 to-amber-800/10",
+    iconColor: "text-amber-400",
+    borderColor: "border-amber-500/20",
+  },
 ];
 
 export function IncomePage() {
@@ -152,13 +161,14 @@ export function IncomePage() {
             Direct referral income is added when someone joins under you. Binary
             pair income is added when both your left and right legs are filled.
             Level income (up to 10 levels) is credited when your downline grows
-            or activates plans.
+            or activates plans. Bonus income is awarded for special
+            achievements.
           </AlertDescription>
         </Alert>
       </motion.div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {statCards.map((card, i) => (
           <motion.div
             key={card.key}
@@ -173,7 +183,7 @@ export function IncomePage() {
               <CardContent className="relative p-5">
                 <div className="flex items-start justify-between mb-3">
                   <card.icon size={22} className={card.iconColor} />
-                  <span className="text-xs text-muted-foreground font-medium">
+                  <span className="text-xs text-muted-foreground font-medium text-right">
                     {card.label}
                   </span>
                 </div>

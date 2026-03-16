@@ -27,6 +27,27 @@ export const Announcement = IDL.Record({
   'content' : IDL.Text,
   'createdAt' : Time,
 });
+export const MobileUser = IDL.Record({
+  'userId' : IDL.Text,
+  'fullName' : IDL.Text,
+  'phone' : IDL.Text,
+  'password' : IDL.Text,
+  'sponsorCode' : IDL.Text,
+  'joinDate' : IDL.Int,
+  'isActive' : IDL.Bool,
+  'walletBalance' : IDL.Nat,
+  'totalEarnings' : IDL.Nat,
+});
+export const MobileUserPublic = IDL.Record({
+  'userId' : IDL.Text,
+  'fullName' : IDL.Text,
+  'phone' : IDL.Text,
+  'sponsorCode' : IDL.Text,
+  'joinDate' : IDL.Int,
+  'isActive' : IDL.Bool,
+  'walletBalance' : IDL.Nat,
+  'totalEarnings' : IDL.Nat,
+});
 export const Package = IDL.Record({
   'id' : IDL.Nat,
   'name' : IDL.Text,
@@ -129,8 +150,9 @@ export const idlService = IDL.Service({
       [],
     ),
   'createFirstAdmin' : IDL.Func([], [], []),
-    'loginAsAdmin' : IDL.Func([IDL.Text], [IDL.Bool], []),
+  'loginAsAdmin' : IDL.Func([IDL.Text], [IDL.Bool], []),
   'getAllAnnouncements' : IDL.Func([], [IDL.Vec(Announcement)], ['query']),
+  'getAllMobileUsers' : IDL.Func([], [IDL.Vec(MobileUser)], ['query']),
   'getAllPackages' : IDL.Func([], [IDL.Vec(Package)], ['query']),
   'getAllUsers' : IDL.Func([], [IDL.Vec(User)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
@@ -147,6 +169,7 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'getIncomeStats' : IDL.Func([IDL.Principal], [IncomeStats], ['query']),
+  'getMobileUserByPhone' : IDL.Func([IDL.Text], [IDL.Opt(MobileUserPublic)], ['query']),
   'getMyIncomeStats' : IDL.Func([], [IncomeStats], ['query']),
   'getMyTransactions' : IDL.Func([], [IDL.Vec(Transaction)], ['query']),
   'getMyWallet' : IDL.Func([], [IDL.Opt(Wallet)], ['query']),
@@ -181,6 +204,7 @@ export const idlService = IDL.Service({
     ),
   'processWithdrawalRequest' : IDL.Func([IDL.Text, IDL.Bool], [], []),
   'purchasePackage' : IDL.Func([IDL.Nat], [], []),
+  'registerMobileUser' : IDL.Func([IDL.Text, IDL.Text, IDL.Text, IDL.Text], [IDL.Text], []),
   'registerUser' : IDL.Func(
       [
         IDL.Text,
@@ -198,6 +222,7 @@ export const idlService = IDL.Service({
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'setUserActiveStatus' : IDL.Func([IDL.Principal, IDL.Bool], [], []),
   'updateUserRank' : IDL.Func([IDL.Principal, Rank], [], []),
+  'verifyMobileLogin' : IDL.Func([IDL.Text, IDL.Text], [IDL.Opt(MobileUserPublic)], ['query']),
 });
 
 export const idlInitArgs = [];
@@ -221,6 +246,27 @@ export const idlFactory = ({ IDL }) => {
     'title' : IDL.Text,
     'content' : IDL.Text,
     'createdAt' : Time,
+  });
+  const MobileUser = IDL.Record({
+    'userId' : IDL.Text,
+    'fullName' : IDL.Text,
+    'phone' : IDL.Text,
+    'password' : IDL.Text,
+    'sponsorCode' : IDL.Text,
+    'joinDate' : IDL.Int,
+    'isActive' : IDL.Bool,
+    'walletBalance' : IDL.Nat,
+    'totalEarnings' : IDL.Nat,
+  });
+  const MobileUserPublic = IDL.Record({
+    'userId' : IDL.Text,
+    'fullName' : IDL.Text,
+    'phone' : IDL.Text,
+    'sponsorCode' : IDL.Text,
+    'joinDate' : IDL.Int,
+    'isActive' : IDL.Bool,
+    'walletBalance' : IDL.Nat,
+    'totalEarnings' : IDL.Nat,
   });
   const Package = IDL.Record({
     'id' : IDL.Nat,
@@ -326,6 +372,7 @@ export const idlFactory = ({ IDL }) => {
     'createFirstAdmin' : IDL.Func([], [], []),
     'loginAsAdmin' : IDL.Func([IDL.Text], [IDL.Bool], []),
     'getAllAnnouncements' : IDL.Func([], [IDL.Vec(Announcement)], ['query']),
+    'getAllMobileUsers' : IDL.Func([], [IDL.Vec(MobileUser)], ['query']),
     'getAllPackages' : IDL.Func([], [IDL.Vec(Package)], ['query']),
     'getAllUsers' : IDL.Func([], [IDL.Vec(User)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
@@ -342,6 +389,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getIncomeStats' : IDL.Func([IDL.Principal], [IncomeStats], ['query']),
+    'getMobileUserByPhone' : IDL.Func([IDL.Text], [IDL.Opt(MobileUserPublic)], ['query']),
     'getMyIncomeStats' : IDL.Func([], [IncomeStats], ['query']),
     'getMyTransactions' : IDL.Func([], [IDL.Vec(Transaction)], ['query']),
     'getMyWallet' : IDL.Func([], [IDL.Opt(Wallet)], ['query']),
@@ -376,6 +424,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'processWithdrawalRequest' : IDL.Func([IDL.Text, IDL.Bool], [], []),
     'purchasePackage' : IDL.Func([IDL.Nat], [], []),
+    'registerMobileUser' : IDL.Func([IDL.Text, IDL.Text, IDL.Text, IDL.Text], [IDL.Text], []),
     'registerUser' : IDL.Func(
         [
           IDL.Text,
@@ -397,6 +446,7 @@ export const idlFactory = ({ IDL }) => {
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'setUserActiveStatus' : IDL.Func([IDL.Principal, IDL.Bool], [], []),
     'updateUserRank' : IDL.Func([IDL.Principal, Rank], [], []),
+    'verifyMobileLogin' : IDL.Func([IDL.Text, IDL.Text], [IDL.Opt(MobileUserPublic)], ['query']),
   });
 };
 

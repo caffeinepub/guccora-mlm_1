@@ -2,9 +2,12 @@ import { useState } from "react";
 
 const SESSION_KEY = "guccora_mobile_session";
 
-interface MobileSession {
+export interface MobileSession {
+  userId: string;
+  fullName: string;
   phone: string;
-  name: string;
+  sponsorCode: string;
+  joinDate: number;
   isLoggedIn: boolean;
 }
 
@@ -23,8 +26,8 @@ export function useMobileSession() {
     () => readSession(),
   );
 
-  const setMobileSession = (phone: string, name: string) => {
-    const session: MobileSession = { phone, name, isLoggedIn: true };
+  const setMobileSession = (data: Omit<MobileSession, "isLoggedIn">) => {
+    const session: MobileSession = { ...data, isLoggedIn: true };
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
     setMobileSessionState(session);
   };

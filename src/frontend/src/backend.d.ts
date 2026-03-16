@@ -117,6 +117,7 @@ export interface backendInterface {
     awardDirectReferralIncome(toUser: Principal, amount: bigint, fromUser: Principal | null): Promise<void>;
     awardLevelIncome(toUser: Principal, amount: bigint, level: bigint, fromUser: Principal | null): Promise<void>;
     createFirstAdmin(): Promise<void>;
+    loginAsAdmin(password: string): Promise<boolean>;
     getAllAnnouncements(): Promise<Array<Announcement>>;
     getAllPackages(): Promise<Array<Package>>;
     getAllUsers(): Promise<Array<User>>;

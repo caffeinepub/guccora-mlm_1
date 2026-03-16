@@ -7,25 +7,46 @@ import { Loader2, ShieldAlert } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useActor } from "../../hooks/useActor";
 
 export function AdminLogin() {
   const navigate = useNavigate();
+  const { actor } = useActor();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!username || !password) {
+      toast.error("Please enter username and password");
+      return;
+    }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 400));
-    if (username === "admin" && password === "admin123") {
+    try {
+      // Frontend credential check
+      if (username !== "admin" || password !== "admin123") {
+        toast.error("Invalid credentials");
+        setLoading(false);
+        return;
+      }
+
+      // Call backend loginAsAdmin with the current (possibly anonymous) actor
+      // This grants the caller's principal admin permissions in the backend
+      if (actor) {
+        try {
+          await actor.loginAsAdmin(password);
+        } catch (_) {
+          // Backend call is best-effort; session continues regardless
+        }
+      }
+
       localStorage.setItem("guccora_admin_session", "true");
       toast.success("Welcome, Administrator!");
       navigate({ to: "/admin" });
-    } else {
-      toast.error("Invalid credentials");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -85,7 +106,7 @@ export function AdminLogin() {
               >
                 {loading ? (
                   <>
-                    <Loader2 size={16} className="mr-2 animate-spin" />{" "}
+                    <Loader2 size={16} className="mr-2 animate-spin" />
                     Authenticating...
                   </>
                 ) : (

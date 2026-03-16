@@ -200,6 +200,7 @@ export interface backendInterface {
     awardDirectReferralIncome(toUser: Principal, amount: bigint, fromUser: Principal | null): Promise<void>;
     awardLevelIncome(toUser: Principal, amount: bigint, level: bigint, fromUser: Principal | null): Promise<void>;
     createFirstAdmin(): Promise<void>;
+    loginAsAdmin(password: string): Promise<boolean>;
     getAllAnnouncements(): Promise<Array<Announcement>>;
     getAllPackages(): Promise<Array<Package>>;
     getAllUsers(): Promise<Array<User>>;
@@ -357,6 +358,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.createFirstAdmin();
+            return result;
+        }
+    }
+    async loginAsAdmin(password: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.loginAsAdmin(password);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.loginAsAdmin(password);
             return result;
         }
     }

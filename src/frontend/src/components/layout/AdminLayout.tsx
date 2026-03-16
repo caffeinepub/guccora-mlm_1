@@ -15,7 +15,6 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useInternetIdentity } from "../../hooks/useInternetIdentity";
 
 const adminNavItems = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard },
@@ -28,7 +27,6 @@ const adminNavItems = [
 ];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { identity, clear } = useInternetIdentity();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const routerState = useRouterState();
   const navigate = useNavigate();
@@ -38,13 +36,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     localStorage.getItem("guccora_admin_session") === "true";
 
   useEffect(() => {
-    if (!identity && !hasAdminSession) {
+    if (!hasAdminSession) {
       navigate({ to: "/admin-login" });
     }
-  }, [identity, hasAdminSession, navigate]);
+  }, [hasAdminSession, navigate]);
 
   const handleLogout = () => {
-    clear();
     localStorage.removeItem("guccora_admin_session");
     navigate({ to: "/" });
   };

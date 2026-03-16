@@ -171,6 +171,7 @@ actor {
   stable var _nextTransactionIdStable : Nat = 0;
   stable var _nextWithdrawalIdStable : Nat = 0;
   stable var _nextAnnouncementIdStable : Nat = 0;
+  stable var _adminPassword : Text = "admin123";
 
   // Serialize all Maps into stable arrays before the upgrade wasm swap.
   system func preupgrade() {
@@ -626,6 +627,70 @@ actor {
     );
     accessControlState.userRoles.add(caller, #admin);
     accessControlState.adminAssigned := true;
+  };
+
+  // Allow any authenticated IC principal to claim admin by providing the password.
+  // This links the caller principal to ADMIN001 so backend actions work.
+  public shared ({ caller }) func loginAsAdmin(password : Text) : async Bool {
+    if (caller.isAnonymous()) { return false };
+    if (password != _adminPassword) { return false };
+    // Create or update admin entry for this principal
+    if (not users.containsKey(caller)) {
+      let adminUser : User = {
+        userId = caller;
+        username = "admin";
+        fullName = "GUCCORA Admin";
+        email = "admin@guccora.com";
+        phone = "";
+        sponsorId = caller;
+        position = #left;
+        joinDate = Time.now();
+        rank = #diamond;
+        isActive = true;
+        leftChild = null;
+        rightChild = null;
+        leftVolume = 0;
+        rightVolume = 0;
+        sponsorCode = ?"ADMIN001";
+      };
+      users.add(caller, adminUser);
+      wallets.add(caller, {
+        userId = caller;
+        totalEarnings = 0;
+        availableBalance = 0;
+        pendingBalance = 0;
+        withdrawnAmount = 0;
+      });
+    } else {
+      // Update existing entry to have ADMIN001 sponsorCode
+      switch (users.get(caller)) {
+        case (?u) {
+          let updated : User = {
+            userId = u.userId;
+            username = u.username;
+            fullName = u.fullName;
+            email = u.email;
+            phone = u.phone;
+            sponsorId = u.sponsorId;
+            position = u.position;
+            joinDate = u.joinDate;
+            rank = #diamond;
+            isActive = true;
+            leftChild = u.leftChild;
+            rightChild = u.rightChild;
+            leftVolume = u.leftVolume;
+            rightVolume = u.rightVolume;
+            sponsorCode = ?"ADMIN001";
+          };
+          users.add(caller, updated);
+        };
+        case null {};
+      };
+    };
+    // Grant admin role in access control
+    accessControlState.userRoles.add(caller, #admin);
+    accessControlState.adminAssigned := true;
+    true;
   };
 
   public query func isAdminConfigured() : async Bool {

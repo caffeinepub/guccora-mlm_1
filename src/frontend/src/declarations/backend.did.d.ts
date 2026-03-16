@@ -120,6 +120,7 @@ export interface _SERVICE {
     undefined
   >,
   'createFirstAdmin' : ActorMethod<[], undefined>,
+  'loginAsAdmin' : ActorMethod<[string], boolean>,
   'getAllAnnouncements' : ActorMethod<[], Array<Announcement>>,
   'getAllPackages' : ActorMethod<[], Array<Package>>,
   'getAllUsers' : ActorMethod<[], Array<User>>,

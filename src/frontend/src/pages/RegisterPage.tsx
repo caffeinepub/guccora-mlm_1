@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Principal } from "@dfinity/principal";
-import { useNavigate } from "@tanstack/react-router";
-import { Loader2, UserPlus } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { AlertTriangle, Loader2, UserPlus } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -30,6 +30,16 @@ export function RegisterPage() {
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [adminReady, setAdminReady] = useState<boolean | null>(null);
+
+  // Check whether ADMIN001 has been configured so we can warn early
+  useEffect(() => {
+    if (!actor) return;
+    actor
+      .isAdminConfigured()
+      .then((ok) => setAdminReady(ok))
+      .catch(() => setAdminReady(null));
+  }, [actor]);
 
   const validate = () => {
     const errs: Record<string, string> = {};
@@ -61,7 +71,25 @@ export function RegisterPage() {
     }
     setLoading(true);
     try {
-      const sponsorPrincipal = Principal.fromText(form.sponsorId.trim());
+      let sponsorPrincipal: Principal;
+      try {
+        sponsorPrincipal = Principal.fromText(form.sponsorId.trim());
+      } catch {
+        const resolved = await actor.lookupSponsorByCode(form.sponsorId.trim());
+        if (!resolved) {
+          // Give a helpful message specific to ADMIN001
+          if (form.sponsorId.trim().toUpperCase() === "ADMIN001") {
+            toast.error(
+              "The root admin (ADMIN001) has not been set up yet. An administrator needs to complete setup at /admin first.",
+            );
+          } else {
+            toast.error("Sponsor code not found. Please check and try again.");
+          }
+          setLoading(false);
+          return;
+        }
+        sponsorPrincipal = resolved;
+      }
       await actor.registerUser(
         form.username.trim(),
         form.fullName.trim(),
@@ -69,8 +97,9 @@ export function RegisterPage() {
         form.phone.trim(),
         sponsorPrincipal,
         form.position,
+        null,
       );
-      toast.success("Account registered successfully! Welcome to GUCCORA.");
+      toast.success("Registration successful. Welcome to GUCCORA!");
       navigate({ to: "/dashboard" });
     } catch (err: any) {
       toast.error(err?.message ?? "Registration failed. Please try again.");
@@ -110,6 +139,38 @@ export function RegisterPage() {
             Create your account and start building your network
           </p>
         </div>
+
+        {/* Admin not configured warning */}
+        {adminReady === false && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 flex gap-3 items-start"
+            data-ocid="register.error_state"
+          >
+            <AlertTriangle
+              size={18}
+              className="text-amber-400 mt-0.5 shrink-0"
+            />
+            <div className="text-sm">
+              <p className="font-semibold text-amber-300 mb-1">
+                Admin not configured yet
+              </p>
+              <p className="text-amber-200/80">
+                The root admin account (ADMIN001) has not been set up. Before
+                anyone can register, an administrator must{" "}
+                <Link
+                  to="/admin"
+                  className="underline text-primary font-medium"
+                  data-ocid="register.link"
+                >
+                  go to the Admin page
+                </Link>{" "}
+                and click &ldquo;Setup GUCCORA Admin&rdquo;.
+              </p>
+            </div>
+          </motion.div>
+        )}
 
         <Card className="bg-card border-border card-glow">
           <CardHeader className="pb-2">
@@ -226,15 +287,19 @@ export function RegisterPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <Label htmlFor="sponsorId">Sponsor Principal ID</Label>
+                  <Label htmlFor="sponsorId">Sponsor ID or Code</Label>
                   <Input
                     id="sponsorId"
                     value={form.sponsorId}
                     onChange={(e) => set("sponsorId", e.target.value)}
-                    placeholder="aaaaa-bbbbb-ccccc..."
+                    placeholder="ADMIN001 or principal ID"
                     className="bg-muted/30 border-border font-mono text-sm"
                     data-ocid="register.input"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Use <span className="font-mono text-primary">ADMIN001</span>{" "}
+                    to register under the default admin.
+                  </p>
                   {errors.sponsorId && (
                     <p
                       className="text-xs text-destructive"
@@ -261,7 +326,9 @@ export function RegisterPage() {
                           }`}
                           data-ocid={`register.${pos}_button`}
                         >
-                          {pos === Position.left ? "← Left Leg" : "Right Leg →"}
+                          {pos === Position.left
+                            ? "\u2190 Left Leg"
+                            : "Right Leg \u2192"}
                         </button>
                       ),
                     )}
@@ -271,7 +338,7 @@ export function RegisterPage() {
                 <Button
                   type="submit"
                   className="w-full gold-gradient text-primary-foreground font-bold rounded-full py-3 mt-2"
-                  disabled={loading}
+                  disabled={loading || adminReady === false}
                   data-ocid="register.submit_button"
                 >
                   {loading ? (

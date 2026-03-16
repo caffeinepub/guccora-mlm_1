@@ -17,10 +17,12 @@ import { PlanPage } from "./pages/PlanPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { AdminAnnouncements } from "./pages/admin/AdminAnnouncements";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
+import { AdminIncomeDistribution } from "./pages/admin/AdminIncomeDistribution";
 import { AdminPackages } from "./pages/admin/AdminPackages";
 import { AdminUsers } from "./pages/admin/AdminUsers";
 import { AdminWithdrawals } from "./pages/admin/AdminWithdrawals";
 import { DashboardPage } from "./pages/dashboard/DashboardPage";
+import { IncomePage } from "./pages/dashboard/IncomePage";
 import { PackagesPage } from "./pages/dashboard/PackagesPage";
 import { ProfilePage } from "./pages/dashboard/ProfilePage";
 import { ReferralsPage } from "./pages/dashboard/ReferralsPage";
@@ -120,6 +122,12 @@ const walletRoute = createRoute({
   component: WalletPage,
 });
 
+const incomeRoute = createRoute({
+  getParentRoute: () => dashboardLayoutRoute,
+  path: "/income",
+  component: IncomePage,
+});
+
 const packagesRoute = createRoute({
   getParentRoute: () => dashboardLayoutRoute,
   path: "/packages",
@@ -169,6 +177,12 @@ const adminPackagesRoute = createRoute({
   component: AdminPackages,
 });
 
+const adminIncomeRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: "/admin/income",
+  component: AdminIncomeDistribution,
+});
+
 const routeTree = rootRoute.addChildren([
   publicLayoutRoute.addChildren([
     indexRoute,
@@ -181,6 +195,7 @@ const routeTree = rootRoute.addChildren([
     dashboardRoute,
     treeRoute,
     walletRoute,
+    incomeRoute,
     packagesRoute,
     referralsRoute,
     profileRoute,
@@ -191,6 +206,7 @@ const routeTree = rootRoute.addChildren([
     adminWithdrawalsRoute,
     adminAnnouncementsRoute,
     adminPackagesRoute,
+    adminIncomeRoute,
   ]),
 ]);
 

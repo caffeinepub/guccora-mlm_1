@@ -135,6 +135,30 @@ export function useUser(userId: Principal | undefined) {
   });
 }
 
+export function useMyIncomeStats() {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["myIncomeStats"],
+    queryFn: async () => {
+      if (!actor) return null;
+      return actor.getMyIncomeStats();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useMyWithdrawalRequests() {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["myWithdrawals"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getMyWithdrawalRequests();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
 export function useSaveProfile() {
   const { actor } = useActor();
   const qc = useQueryClient();
@@ -299,5 +323,61 @@ export function useAddTransaction() {
     },
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: ["myTransactions", "allUsers"] }),
+  });
+}
+
+export function useAwardDirectReferralIncome() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      toUser,
+      amount,
+      fromUser,
+    }: { toUser: Principal; amount: bigint; fromUser: Principal | null }) => {
+      if (!actor) throw new Error("Not connected");
+      return actor.awardDirectReferralIncome(toUser, amount, fromUser);
+    },
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["allUsers", "withdrawals"] }),
+  });
+}
+
+export function useAwardBinaryPairIncome() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      toUser,
+      amount,
+    }: { toUser: Principal; amount: bigint }) => {
+      if (!actor) throw new Error("Not connected");
+      return actor.awardBinaryPairIncome(toUser, amount);
+    },
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["allUsers", "withdrawals"] }),
+  });
+}
+
+export function useAwardLevelIncome() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      toUser,
+      amount,
+      level,
+      fromUser,
+    }: {
+      toUser: Principal;
+      amount: bigint;
+      level: bigint;
+      fromUser: Principal | null;
+    }) => {
+      if (!actor) throw new Error("Not connected");
+      return actor.awardLevelIncome(toUser, amount, level, fromUser);
+    },
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["allUsers", "withdrawals"] }),
   });
 }

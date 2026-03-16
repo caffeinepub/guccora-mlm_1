@@ -55,6 +55,7 @@ export function txTypeLabel(type: TransactionType): string {
     [TransactionType.rankBonus]: "Rank Bonus",
     [TransactionType.withdrawal]: "Withdrawal",
     [TransactionType.adjustment]: "Adjustment",
+    [TransactionType.levelIncome]: "Level Income",
   };
   return labels[type] ?? type;
 }

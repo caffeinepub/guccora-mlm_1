@@ -10,6 +10,7 @@ import { IDL } from '@icp-sdk/core/candid';
 
 export const TransactionType = IDL.Variant({
   'adjustment' : IDL.Null,
+  'levelIncome' : IDL.Null,
   'directReferralBonus' : IDL.Null,
   'rankBonus' : IDL.Null,
   'withdrawal' : IDL.Null,
@@ -56,6 +57,7 @@ export const User = IDL.Record({
   'phone' : IDL.Text,
   'rightVolume' : IDL.Nat,
   'position' : Position,
+  'sponsorCode' : IDL.Opt(IDL.Text),
 });
 export const UserProfile = IDL.Record({
   'username' : IDL.Text,
@@ -65,6 +67,13 @@ export const UserProfile = IDL.Record({
   'isActive' : IDL.Bool,
   'email' : IDL.Text,
   'phone' : IDL.Text,
+});
+export const IncomeStats = IDL.Record({
+  'totalIncome' : IDL.Nat,
+  'levelIncome' : IDL.Nat,
+  'rankBonus' : IDL.Nat,
+  'directReferral' : IDL.Nat,
+  'binaryPair' : IDL.Nat,
 });
 export const TransactionStatus = IDL.Variant({
   'pending' : IDL.Null,
@@ -108,6 +117,17 @@ export const idlService = IDL.Service({
       [],
     ),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'awardBinaryPairIncome' : IDL.Func([IDL.Principal, IDL.Nat], [], []),
+  'awardDirectReferralIncome' : IDL.Func(
+      [IDL.Principal, IDL.Nat, IDL.Opt(IDL.Principal)],
+      [],
+      [],
+    ),
+  'awardLevelIncome' : IDL.Func(
+      [IDL.Principal, IDL.Nat, IDL.Nat, IDL.Opt(IDL.Principal)],
+      [],
+      [],
+    ),
   'createFirstAdmin' : IDL.Func([], [], []),
   'getAllAnnouncements' : IDL.Func([], [IDL.Vec(Announcement)], ['query']),
   'getAllPackages' : IDL.Func([], [IDL.Vec(Package)], ['query']),
@@ -125,8 +145,15 @@ export const idlService = IDL.Service({
       ],
       ['query'],
     ),
+  'getIncomeStats' : IDL.Func([IDL.Principal], [IncomeStats], ['query']),
+  'getMyIncomeStats' : IDL.Func([], [IncomeStats], ['query']),
   'getMyTransactions' : IDL.Func([], [IDL.Vec(Transaction)], ['query']),
   'getMyWallet' : IDL.Func([], [IDL.Opt(Wallet)], ['query']),
+  'getMyWithdrawalRequests' : IDL.Func(
+      [],
+      [IDL.Vec(WithdrawalRequest)],
+      ['query'],
+    ),
   'getUser' : IDL.Func([IDL.Principal], [IDL.Opt(User)], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
@@ -144,11 +171,25 @@ export const idlService = IDL.Service({
       [IDL.Vec(WithdrawalRequest)],
       ['query'],
     ),
+  'isAdminConfigured' : IDL.Func([], [IDL.Bool], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'lookupSponsorByCode' : IDL.Func(
+      [IDL.Text],
+      [IDL.Opt(IDL.Principal)],
+      ['query'],
+    ),
   'processWithdrawalRequest' : IDL.Func([IDL.Text, IDL.Bool], [], []),
   'purchasePackage' : IDL.Func([IDL.Nat], [], []),
   'registerUser' : IDL.Func(
-      [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Principal, Position],
+      [
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Principal,
+        Position,
+        IDL.Opt(IDL.Text),
+      ],
       [IDL.Principal],
       [],
     ),
@@ -163,6 +204,7 @@ export const idlInitArgs = [];
 export const idlFactory = ({ IDL }) => {
   const TransactionType = IDL.Variant({
     'adjustment' : IDL.Null,
+    'levelIncome' : IDL.Null,
     'directReferralBonus' : IDL.Null,
     'rankBonus' : IDL.Null,
     'withdrawal' : IDL.Null,
@@ -209,6 +251,7 @@ export const idlFactory = ({ IDL }) => {
     'phone' : IDL.Text,
     'rightVolume' : IDL.Nat,
     'position' : Position,
+    'sponsorCode' : IDL.Opt(IDL.Text),
   });
   const UserProfile = IDL.Record({
     'username' : IDL.Text,
@@ -218,6 +261,13 @@ export const idlFactory = ({ IDL }) => {
     'isActive' : IDL.Bool,
     'email' : IDL.Text,
     'phone' : IDL.Text,
+  });
+  const IncomeStats = IDL.Record({
+    'totalIncome' : IDL.Nat,
+    'levelIncome' : IDL.Nat,
+    'rankBonus' : IDL.Nat,
+    'directReferral' : IDL.Nat,
+    'binaryPair' : IDL.Nat,
   });
   const TransactionStatus = IDL.Variant({
     'pending' : IDL.Null,
@@ -261,6 +311,17 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'awardBinaryPairIncome' : IDL.Func([IDL.Principal, IDL.Nat], [], []),
+    'awardDirectReferralIncome' : IDL.Func(
+        [IDL.Principal, IDL.Nat, IDL.Opt(IDL.Principal)],
+        [],
+        [],
+      ),
+    'awardLevelIncome' : IDL.Func(
+        [IDL.Principal, IDL.Nat, IDL.Nat, IDL.Opt(IDL.Principal)],
+        [],
+        [],
+      ),
     'createFirstAdmin' : IDL.Func([], [], []),
     'getAllAnnouncements' : IDL.Func([], [IDL.Vec(Announcement)], ['query']),
     'getAllPackages' : IDL.Func([], [IDL.Vec(Package)], ['query']),
@@ -278,8 +339,15 @@ export const idlFactory = ({ IDL }) => {
         ],
         ['query'],
       ),
+    'getIncomeStats' : IDL.Func([IDL.Principal], [IncomeStats], ['query']),
+    'getMyIncomeStats' : IDL.Func([], [IncomeStats], ['query']),
     'getMyTransactions' : IDL.Func([], [IDL.Vec(Transaction)], ['query']),
     'getMyWallet' : IDL.Func([], [IDL.Opt(Wallet)], ['query']),
+    'getMyWithdrawalRequests' : IDL.Func(
+        [],
+        [IDL.Vec(WithdrawalRequest)],
+        ['query'],
+      ),
     'getUser' : IDL.Func([IDL.Principal], [IDL.Opt(User)], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
@@ -297,11 +365,25 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(WithdrawalRequest)],
         ['query'],
       ),
+    'isAdminConfigured' : IDL.Func([], [IDL.Bool], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'lookupSponsorByCode' : IDL.Func(
+        [IDL.Text],
+        [IDL.Opt(IDL.Principal)],
+        ['query'],
+      ),
     'processWithdrawalRequest' : IDL.Func([IDL.Text, IDL.Bool], [], []),
     'purchasePackage' : IDL.Func([IDL.Nat], [], []),
     'registerUser' : IDL.Func(
-        [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Principal, Position],
+        [
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          IDL.Principal,
+          Position,
+          IDL.Opt(IDL.Text),
+        ],
         [IDL.Principal],
         [],
       ),

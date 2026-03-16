@@ -3,6 +3,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   ChevronRight,
   CreditCard,
+  DollarSign,
   LayoutDashboard,
   LayoutGrid,
   LogOut,
@@ -21,6 +22,7 @@ const adminNavItems = [
   { to: "/admin/withdrawals", label: "Withdrawals", icon: CreditCard },
   { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
   { to: "/admin/packages", label: "Packages", icon: Package },
+  { to: "/admin/income", label: "Income Distribution", icon: DollarSign },
 ];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {

@@ -15,6 +15,13 @@ export interface Announcement {
   'content' : string,
   'createdAt' : Time,
 }
+export interface IncomeStats {
+  'totalIncome' : bigint,
+  'levelIncome' : bigint,
+  'rankBonus' : bigint,
+  'directReferral' : bigint,
+  'binaryPair' : bigint,
+}
 export interface Package {
   'id' : bigint,
   'name' : string,
@@ -43,6 +50,7 @@ export type TransactionStatus = { 'pending' : null } |
   { 'approved' : null } |
   { 'rejected' : null };
 export type TransactionType = { 'adjustment' : null } |
+  { 'levelIncome' : null } |
   { 'directReferralBonus' : null } |
   { 'rankBonus' : null } |
   { 'withdrawal' : null } |
@@ -62,6 +70,7 @@ export interface User {
   'phone' : string,
   'rightVolume' : bigint,
   'position' : Position,
+  'sponsorCode' : [] | [string],
 }
 export interface UserProfile {
   'username' : string,
@@ -101,6 +110,15 @@ export interface _SERVICE {
     string
   >,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'awardBinaryPairIncome' : ActorMethod<[Principal, bigint], undefined>,
+  'awardDirectReferralIncome' : ActorMethod<
+    [Principal, bigint, [] | [Principal]],
+    undefined
+  >,
+  'awardLevelIncome' : ActorMethod<
+    [Principal, bigint, bigint, [] | [Principal]],
+    undefined
+  >,
   'createFirstAdmin' : ActorMethod<[], undefined>,
   'getAllAnnouncements' : ActorMethod<[], Array<Announcement>>,
   'getAllPackages' : ActorMethod<[], Array<Package>>,
@@ -111,8 +129,11 @@ export interface _SERVICE {
     [],
     { 'activeUsers' : bigint, 'totalPaidOut' : bigint, 'totalUsers' : bigint }
   >,
+  'getIncomeStats' : ActorMethod<[Principal], IncomeStats>,
+  'getMyIncomeStats' : ActorMethod<[], IncomeStats>,
   'getMyTransactions' : ActorMethod<[], Array<Transaction>>,
   'getMyWallet' : ActorMethod<[], [] | [Wallet]>,
+  'getMyWithdrawalRequests' : ActorMethod<[], Array<WithdrawalRequest>>,
   'getUser' : ActorMethod<[Principal], [] | [User]>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getUserTransactions' : ActorMethod<[Principal], Array<Transaction>>,
@@ -121,11 +142,13 @@ export interface _SERVICE {
     [[] | [Principal]],
     Array<WithdrawalRequest>
   >,
+  'isAdminConfigured' : ActorMethod<[], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'lookupSponsorByCode' : ActorMethod<[string], [] | [Principal]>,
   'processWithdrawalRequest' : ActorMethod<[string, boolean], undefined>,
   'purchasePackage' : ActorMethod<[bigint], undefined>,
   'registerUser' : ActorMethod<
-    [string, string, string, string, Principal, Position],
+    [string, string, string, string, Principal, Position, [] | [string]],
     Principal
   >,
   'requestWithdrawal' : ActorMethod<[bigint, string, string], string>,

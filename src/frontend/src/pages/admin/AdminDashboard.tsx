@@ -20,7 +20,9 @@ export function AdminDashboard() {
   const handleCreateAdmin = async () => {
     try {
       await createAdminMutation.mutateAsync();
-      toast.success("Admin account created successfully!");
+      toast.success(
+        "GUCCORA Admin account created! Sponsor code ADMIN001 is now active.",
+      );
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to create admin");
     }
@@ -55,21 +57,26 @@ export function AdminDashboard() {
           Admin Overview
         </h1>
         {!isAdmin && (
-          <Button
-            onClick={handleCreateAdmin}
-            className="gold-gradient text-primary-foreground font-semibold"
-            disabled={createAdminMutation.isPending}
-            data-ocid="admin.primary_button"
-          >
-            {createAdminMutation.isPending ? (
-              <>
-                <Loader2 size={16} className="mr-2 animate-spin" />
-                Setting up...
-              </>
-            ) : (
-              "Setup First Admin"
-            )}
-          </Button>
+          <div className="flex flex-col items-end">
+            <Button
+              onClick={handleCreateAdmin}
+              className="gold-gradient text-primary-foreground font-semibold"
+              disabled={createAdminMutation.isPending}
+              data-ocid="admin.primary_button"
+            >
+              {createAdminMutation.isPending ? (
+                <>
+                  <Loader2 size={16} className="mr-2 animate-spin" />
+                  Setting up...
+                </>
+              ) : (
+                "Setup GUCCORA Admin"
+              )}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-1">
+              Username: admin · Sponsor Code: ADMIN001 · Role: Super Admin
+            </p>
+          </div>
         )}
       </div>
 

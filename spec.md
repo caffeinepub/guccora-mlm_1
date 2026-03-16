@@ -1,40 +1,49 @@
-# GUCCORA MLM App
+# GUCCORA MLM
 
 ## Current State
-New project — no existing code.
+- Full binary MLM backend with User, Wallet, Transaction, WithdrawalRequest types
+- TransactionType has: binaryCommission, directReferralBonus, rankBonus, withdrawal, adjustment
+- Wallet tracks totalEarnings, availableBalance, pendingBalance, withdrawnAmount
+- Withdrawal request system exists (requestWithdrawal, processWithdrawalRequest)
+- Frontend has WalletPage, AdminWithdrawals, DashboardPage
+- No income awarding functions exist (admin cannot credit income to users)
+- No level income (10-level) transaction type
+- No income stats breakdown API
+- No dedicated income history page in dashboard
 
 ## Requested Changes (Diff)
 
 ### Add
-- Complete binary MLM web application for GUCCORA brand
-- Public landing page with hero section, features, compensation plan overview, and CTA
-- User registration with sponsor/referral code system
-- User login page
-- Member dashboard: personal stats, rank, binary tree visualization (left/right legs), recent activity
-- Wallet system: balance display, deposit history, withdrawal requests, transaction history
-- Genealogy/downline viewer: interactive binary tree showing left and right legs up to N levels deep
-- Referral link generator and sharing tools
-- Admin panel: user management, withdrawal approvals, commission oversight, global stats
-- Role-based access: Member and Admin roles
-- Premium gold (#C9A84C) and dark purple (#1A0533) brand theme
+- Backend: `#levelIncome` variant to TransactionType
+- Backend: `creditIncomeToWallet` internal helper to update wallet + create transaction atomically
+- Backend: `awardDirectReferralIncome(toUser, amount, fromUser)` - admin awards direct referral income
+- Backend: `awardBinaryPairIncome(toUser, amount)` - admin awards binary pair matching income
+- Backend: `awardLevelIncome(toUser, amount, level, fromUser)` - admin awards level income (levels 1-10)
+- Backend: `getIncomeStats(userId)` - returns per-type income totals for a user
+- Backend: `getMyIncomeStats()` - caller's income breakdown (user-callable)
+- Frontend: `IncomePage` at `/income` — shows income breakdown cards + income history table filtered by type
+- Frontend: `AdminIncomeDistribution` page at `/admin/income` — forms to award direct referral, binary pair, and level income to any user
+- Frontend: Add `/income` route to dashboard layout and `/admin/income` to admin layout
+- Frontend: `useIncomeStats` query hook
+- Frontend: `useAwardIncome` mutation hooks
+- Frontend: Add `levelIncome` label to formatters
+- Frontend: Update DashboardPage income breakdown cards (direct, binary, level totals)
 
 ### Modify
-- N/A (new project)
+- Backend: `addTransaction` to also update wallet `availableBalance` and `totalEarnings` when adding income transactions
+- Frontend: WalletPage — add income stats summary section above transaction history
+- Frontend: DashboardLayout nav — add "Income" link
 
 ### Remove
-- N/A (new project)
+- Nothing removed
 
 ## Implementation Plan
-1. Select `authorization` component for role-based access (Member/Admin)
-2. Generate Motoko backend with:
-   - User profile management with sponsor tracking
-   - Binary tree placement logic (left/right leg auto-placement and manual)
-   - Commission calculation on binary matching volume
-   - Wallet ledger: deposits, withdrawals, pending/approved states
-   - Rank system based on downline volume
-   - Admin functions: approve withdrawals, view all users, adjust balances
-3. Build frontend:
-   - Public: Landing page, About, Compensation Plan, Login, Register
-   - Member: Dashboard, My Tree, Wallet, Referrals, Profile
-   - Admin: Dashboard, Users, Withdrawals, Commissions, Settings
-   - Shared: Navbar, Sidebar, gold/dark-purple design system
+1. Update backend main.mo: add `#levelIncome` tx type, `creditIncomeToWallet` helper, `awardDirectReferralIncome`, `awardBinaryPairIncome`, `awardLevelIncome`, `getIncomeStats`, `getMyIncomeStats`
+2. Update backend `addTransaction` to credit wallet balance when tx type is income-type
+3. Regenerate frontend bindings via generate_motoko_code
+4. Add `useIncomeStats`, `useAwardDirectReferral`, `useAwardBinaryPair`, `useAwardLevelIncome` to useQueries.ts
+5. Add `levelIncome` to formatters.ts txTypeLabel
+6. Create `IncomePage` at `/income` with income type breakdown + history
+7. Create `AdminIncomeDistribution` page at `/admin/income`
+8. Add routes to App.tsx
+9. Add nav link in DashboardLayout

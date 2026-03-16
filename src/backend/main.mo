@@ -217,6 +217,24 @@ actor {
   };
   // ── END STABLE STORAGE ────────────────────────────────────────────────────
 
+  // ── ADMIN CHECK HELPER ────────────────────────────────────────────────────
+  // Checks both the Caffeine accessControlState AND the users map (sponsorCode
+  // == "ADMIN001") so admin actions work even when accessControlState has not
+  // yet been restored from stable storage in the current session.
+  func isAdminCaller(caller : Principal) : Bool {
+    if (AccessControl.isAdmin(accessControlState, caller)) { return true };
+    switch (users.get(caller)) {
+      case (?u) {
+        switch (u.sponsorCode) {
+          case (?code) { code == "ADMIN001" };
+          case null { false };
+        };
+      };
+      case null { false };
+    };
+  };
+  // ── END ADMIN CHECK HELPER ────────────────────────────────────────────────
+
   // Helper: check if ADMIN001 sponsor already exists in the users table
   func admin001Exists() : Bool {
     for ((_, user) in users.toArray().values()) {
@@ -376,7 +394,7 @@ actor {
   };
 
   public query ({ caller }) func getUserProfile(userId : Principal) : async ?UserProfile {
-    if (caller != userId and not AccessControl.isAdmin(accessControlState, caller)) {
+    if (caller != userId and not isAdminCaller(caller)) {
       Runtime.trap("Unauthorized: Can only view your own profile or be an admin");
     };
     switch (users.get(userId)) {
@@ -563,22 +581,8 @@ actor {
   };
 
   // Get all users - Admin only.
-  // Falls back to checking the users map directly if accessControlState was
-  // not yet restored (e.g. first call after a fresh deploy before postupgrade runs).
   public query ({ caller }) func getAllUsers() : async [User] {
-    // Primary check: Caffeine/mixin admin
-    let caffineAdmin = AccessControl.isAdmin(accessControlState, caller);
-    // Fallback: the caller is the ADMIN001 holder in the users map
-    let mapAdmin = switch (users.get(caller)) {
-      case (?u) {
-        switch (u.sponsorCode) {
-          case (?code) { code == "ADMIN001" };
-          case null { false };
-        };
-      };
-      case null { false };
-    };
-    if (not caffineAdmin and not mapAdmin) {
+    if (not isAdminCaller(caller)) {
       Runtime.trap("Unauthorized: Only admins can view all users");
     };
     users.values().toArray();
@@ -589,7 +593,7 @@ actor {
     if (admin001Exists()) {
       Runtime.trap("Admin already exists");
     };
-    if (users.containsKey(caller) and not AccessControl.isAdmin(accessControlState, caller)) {
+    if (users.containsKey(caller) and not isAdminCaller(caller)) {
       Runtime.trap("Caller is already registered as a regular user");
     };
     let adminUser : User = {
@@ -648,7 +652,7 @@ actor {
   };
 
   public shared ({ caller }) func addPackage(name : Text, price : Nat, benefits : Text) : async Nat {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+    if (not isAdminCaller(caller)) {
       Runtime.trap("Unauthorized: Only admins can add packages");
     };
     let packageId = packages.size();
@@ -687,7 +691,7 @@ actor {
   };
 
   public shared ({ caller }) func addAnnouncement(title : Text, content : Text) : async () {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+    if (not isAdminCaller(caller)) {
       Runtime.trap("Unauthorized: Only admins can add announcements");
     };
     let announcementId = nextAnnouncementId;
@@ -701,7 +705,7 @@ actor {
   };
 
   public query ({ caller }) func getUserWallet(userId : Principal) : async ?Wallet {
-    if (caller != userId and not AccessControl.isAdmin(accessControlState, caller)) {
+    if (caller != userId and not isAdminCaller(caller)) {
       Runtime.trap("Unauthorized: Can only view your own wallet or be an admin");
     };
     wallets.get(userId);
@@ -715,7 +719,7 @@ actor {
   };
 
   public query ({ caller }) func getUserTransactions(userId : Principal) : async [Transaction] {
-    if (caller != userId and not AccessControl.isAdmin(accessControlState, caller)) {
+    if (caller != userId and not isAdminCaller(caller)) {
       Runtime.trap("Unauthorized: Can only view your own transactions or be an admin");
     };
     transactions.values().toArray().filter(
@@ -733,7 +737,7 @@ actor {
   };
 
   public shared ({ caller }) func addTransaction(userId : Principal, amount : Nat, transactionType : TransactionType, relatedUser : ?Principal) : async Text {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+    if (not isAdminCaller(caller)) {
       Runtime.trap("Unauthorized: Only admins can add transactions");
     };
     let transactionId = generateTransactionId();
@@ -772,21 +776,21 @@ actor {
   };
 
   public shared ({ caller }) func awardDirectReferralIncome(toUser : Principal, amount : Nat, fromUser : ?Principal) : async () {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+    if (not isAdminCaller(caller)) {
       Runtime.trap("Unauthorized: Only admins can award direct referral income");
     };
     creditIncomeToWallet(toUser, amount, #directReferralBonus, fromUser);
   };
 
   public shared ({ caller }) func awardBinaryPairIncome(toUser : Principal, amount : Nat) : async () {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+    if (not isAdminCaller(caller)) {
       Runtime.trap("Unauthorized: Only admins can award binary pair income");
     };
     creditIncomeToWallet(toUser, amount, #binaryCommission, null);
   };
 
   public shared ({ caller }) func awardLevelIncome(toUser : Principal, amount : Nat, level : Nat, fromUser : ?Principal) : async () {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+    if (not isAdminCaller(caller)) {
       Runtime.trap("Unauthorized: Only admins can award level income");
     };
     if (level < 1 or level > 10) { Runtime.trap("Income level must be between 1 and 10") };
@@ -794,7 +798,7 @@ actor {
   };
 
   public query ({ caller }) func getIncomeStats(userId : Principal) : async IncomeStats {
-    if (caller != userId and not AccessControl.isAdmin(accessControlState, caller)) {
+    if (caller != userId and not isAdminCaller(caller)) {
       Runtime.trap("Unauthorized: Can only view your own stats or be an admin");
     };
 
@@ -900,13 +904,13 @@ actor {
   public query ({ caller }) func getWithdrawalRequests(userId : ?Principal) : async [WithdrawalRequest] {
     switch (userId) {
       case null {
-        if (not (AccessControl.isAdmin(accessControlState, caller))) {
+        if (not isAdminCaller(caller)) {
           Runtime.trap("Unauthorized: Only admins can view all withdrawal requests");
         };
         withdrawalRequests.values().toArray();
       };
       case (?uid) {
-        if (caller != uid and not AccessControl.isAdmin(accessControlState, caller)) {
+        if (caller != uid and not isAdminCaller(caller)) {
           Runtime.trap("Unauthorized: Can only view your own withdrawal requests or be an admin");
         };
         withdrawalRequests.values().toArray().filter(
@@ -917,7 +921,7 @@ actor {
   };
 
   public shared ({ caller }) func processWithdrawalRequest(requestId : Text, approve : Bool) : async () {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+    if (not isAdminCaller(caller)) {
       Runtime.trap("Unauthorized: Only admins can process withdrawal requests");
     };
     switch (withdrawalRequests.get(requestId)) {
@@ -959,7 +963,7 @@ actor {
   };
 
   public shared ({ caller }) func updateUserRank(userId : Principal, newRank : Rank) : async () {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+    if (not isAdminCaller(caller)) {
       Runtime.trap("Unauthorized: Only admins can update user ranks");
     };
     switch (users.get(userId)) {
@@ -990,7 +994,7 @@ actor {
   };
 
   public shared ({ caller }) func setUserActiveStatus(userId : Principal, isActive : Bool) : async () {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+    if (not isAdminCaller(caller)) {
       Runtime.trap("Unauthorized: Only admins can change user active status");
     };
     switch (users.get(userId)) {
@@ -1025,7 +1029,7 @@ actor {
     activeUsers : Nat;
     totalPaidOut : Nat;
   } {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+    if (not isAdminCaller(caller)) {
       Runtime.trap("Unauthorized: Only admins can view global stats");
     };
     let allUsers = users.values().toArray();

@@ -25,7 +25,11 @@ import {
   useMyTransactions,
   useMyWithdrawalRequests,
 } from "../../hooks/useQueries";
-import { formatDateTime, formatICP, txTypeLabel } from "../../lib/formatters";
+import {
+  formatDateTime,
+  formatRupees,
+  txTypeLabel,
+} from "../../lib/formatters";
 
 function StatusBadge({ status }: { status: TransactionStatus }) {
   const variants: Record<TransactionStatus, string> = {
@@ -66,33 +70,33 @@ const statCards = [
     key: "totalIncome",
     label: "Total Income",
     icon: TrendingUp,
-    gradient: "from-yellow-600/30 via-amber-500/20 to-transparent",
-    iconColor: "text-yellow-400",
-    borderColor: "border-yellow-500/20",
+    gradient: "from-amber-900/30 to-amber-800/10",
+    iconColor: "text-amber-400",
+    borderColor: "border-amber-500/20",
   },
   {
     key: "directReferral",
     label: "Direct Referral",
     icon: Users,
-    gradient: "from-emerald-600/30 via-green-500/20 to-transparent",
-    iconColor: "text-emerald-400",
-    borderColor: "border-emerald-500/20",
+    gradient: "from-amber-800/30 to-amber-700/10",
+    iconColor: "text-amber-400",
+    borderColor: "border-amber-500/20",
   },
   {
     key: "binaryPair",
     label: "Binary Pair",
     icon: GitBranch,
-    gradient: "from-blue-600/30 via-purple-500/20 to-transparent",
-    iconColor: "text-blue-400",
-    borderColor: "border-blue-500/20",
+    gradient: "from-amber-900/30 to-amber-800/10",
+    iconColor: "text-amber-400",
+    borderColor: "border-amber-500/20",
   },
   {
     key: "levelIncome",
     label: "Level Income",
     icon: BarChart3,
-    gradient: "from-orange-600/30 via-amber-500/20 to-transparent",
-    iconColor: "text-orange-400",
-    borderColor: "border-orange-500/20",
+    gradient: "from-amber-800/30 to-amber-700/10",
+    iconColor: "text-amber-400",
+    borderColor: "border-amber-500/20",
   },
 ];
 
@@ -120,11 +124,11 @@ export function IncomePage() {
         transition={{ duration: 0.4 }}
         className="flex items-center gap-3"
       >
-        <div className="h-10 w-10 rounded-xl gold-gradient flex items-center justify-center">
-          <TrendingUp size={20} className="text-primary-foreground" />
+        <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
+          <TrendingUp size={20} className="text-amber-400" />
         </div>
         <div>
-          <h1 className="text-2xl font-display font-bold gold-gradient-text">
+          <h1 className="text-2xl font-display font-bold text-amber-400">
             My Income
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -164,11 +168,8 @@ export function IncomePage() {
             animate="visible"
           >
             <Card
-              className={`relative overflow-hidden border ${card.borderColor} bg-card/50 backdrop-blur-sm`}
+              className={`relative overflow-hidden border ${card.borderColor} bg-gradient-to-br ${card.gradient}`}
             >
-              <div
-                className={`absolute inset-0 bg-gradient-to-br ${card.gradient} pointer-events-none`}
-              />
               <CardContent className="relative p-5">
                 <div className="flex items-start justify-between mb-3">
                   <card.icon size={22} className={card.iconColor} />
@@ -180,7 +181,7 @@ export function IncomePage() {
                   <Skeleton className="h-7 w-28" />
                 ) : (
                   <p className="text-xl font-bold font-display text-foreground">
-                    {formatICP(getStatValue(card.key))}
+                    {formatRupees(getStatValue(card.key))}
                   </p>
                 )}
               </CardContent>
@@ -198,7 +199,7 @@ export function IncomePage() {
         <Card className="border-border/50">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-base font-semibold">
-              <BarChart3 size={18} className="text-primary" />
+              <BarChart3 size={18} className="text-amber-400" />
               Income History
             </CardTitle>
           </CardHeader>
@@ -262,8 +263,8 @@ export function IncomePage() {
                           <TableCell className="text-muted-foreground text-sm">
                             {formatDateTime(tx.date)}
                           </TableCell>
-                          <TableCell className="text-right font-semibold text-emerald-400">
-                            +{formatICP(tx.amount)}
+                          <TableCell className="text-right font-semibold text-amber-400">
+                            +{formatRupees(tx.amount)}
                           </TableCell>
                           <TableCell className="text-center">
                             <StatusBadge status={tx.status} />
@@ -288,7 +289,7 @@ export function IncomePage() {
         <Card className="border-border/50">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-base font-semibold">
-              <ArrowDownCircle size={18} className="text-primary" />
+              <ArrowDownCircle size={18} className="text-amber-400" />
               My Withdrawal Requests
             </CardTitle>
           </CardHeader>
@@ -346,7 +347,7 @@ export function IncomePage() {
                           {wd.requestId.slice(0, 12)}...
                         </TableCell>
                         <TableCell className="font-semibold">
-                          {formatICP(wd.amount)}
+                          {formatRupees(wd.amount)}
                         </TableCell>
                         <TableCell className="text-sm">
                           {wd.paymentMethod}

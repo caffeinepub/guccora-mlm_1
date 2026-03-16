@@ -9,7 +9,11 @@ import {
   useProcessWithdrawal,
   useWithdrawalRequests,
 } from "../../hooks/useQueries";
-import { formatDate, formatICP, truncatePrincipal } from "../../lib/formatters";
+import {
+  formatDate,
+  formatRupees,
+  truncatePrincipal,
+} from "../../lib/formatters";
 
 export function AdminWithdrawals() {
   const { data: withdrawals, isLoading } = useWithdrawalRequests(null);
@@ -111,7 +115,7 @@ export function AdminWithdrawals() {
                         {truncatePrincipal(req.userId.toString())}
                       </td>
                       <td className="px-5 py-3 font-semibold text-primary">
-                        {formatICP(req.amount)}
+                        {formatRupees(req.amount)}
                       </td>
                       <td className="px-5 py-3 hidden md:table-cell">
                         {req.paymentMethod}
@@ -199,7 +203,7 @@ export function AdminWithdrawals() {
                         {truncatePrincipal(req.userId.toString())}
                       </td>
                       <td className="px-5 py-3 font-semibold">
-                        {formatICP(req.amount)}
+                        {formatRupees(req.amount)}
                       </td>
                       <td className="px-5 py-3 text-muted-foreground">
                         {formatDate(req.requestDate)}

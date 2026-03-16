@@ -9,7 +9,7 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAddPackage, usePackages } from "../../hooks/useQueries";
-import { formatICP } from "../../lib/formatters";
+import { formatRupees } from "../../lib/formatters";
 
 export function AdminPackages() {
   const { data: packages, isLoading } = usePackages();
@@ -90,7 +90,7 @@ export function AdminPackages() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label>Price (ICP)</Label>
+                  <Label>Price (20b9)</Label>
                   <Input
                     type="number"
                     min="0.01"
@@ -182,7 +182,7 @@ export function AdminPackages() {
                       {pkg.name}
                     </h3>
                     <div className="font-bold text-primary">
-                      {formatICP(pkg.price)}
+                      {formatRupees(pkg.price)}
                     </div>
                   </div>
                   <ul className="space-y-1.5">

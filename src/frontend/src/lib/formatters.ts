@@ -1,7 +1,16 @@
 import { Rank, TransactionStatus, TransactionType } from "../backend";
 
+export function formatRupees(amount: bigint): string {
+  return `\u20B9${Number(amount).toLocaleString("en-IN")}`;
+}
+
+export function formatRupeesNat(amount: number): string {
+  return `\u20B9${amount.toLocaleString("en-IN")}`;
+}
+
+/** @deprecated Use formatRupees instead */
 export function formatICP(amount: bigint): string {
-  return `${(Number(amount) / 100_000_000).toFixed(2)} ICP`;
+  return formatRupees(amount);
 }
 
 export function formatDate(time: bigint): string {

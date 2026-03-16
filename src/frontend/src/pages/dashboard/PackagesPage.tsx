@@ -6,7 +6,7 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { usePackages, usePurchasePackage } from "../../hooks/useQueries";
-import { formatICP } from "../../lib/formatters";
+import { formatRupees } from "../../lib/formatters";
 
 export function PackagesPage() {
   const { data: packages, isLoading } = usePackages();
@@ -100,7 +100,7 @@ export function PackagesPage() {
                     {pkg.name}
                   </CardTitle>
                   <div className="font-display text-3xl font-bold text-primary mt-2">
-                    {formatICP(pkg.price)}
+                    {formatRupees(pkg.price)}
                   </div>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col justify-between">

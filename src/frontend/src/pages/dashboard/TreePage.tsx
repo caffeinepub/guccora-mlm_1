@@ -182,7 +182,7 @@ export function TreePage() {
                 Left Leg Volume
               </div>
               <div className="font-display text-xl font-bold text-primary">
-                {(Number(myUser.leftVolume) / 100_000_000).toFixed(2)} ICP
+                {`₹${Number(myUser.leftVolume).toLocaleString("en-IN")}`}
               </div>
             </CardContent>
           </Card>
@@ -192,7 +192,7 @@ export function TreePage() {
                 Right Leg Volume
               </div>
               <div className="font-display text-xl font-bold text-primary">
-                {(Number(myUser.rightVolume) / 100_000_000).toFixed(2)} ICP
+                {`₹${Number(myUser.rightVolume).toLocaleString("en-IN")}`}
               </div>
             </CardContent>
           </Card>

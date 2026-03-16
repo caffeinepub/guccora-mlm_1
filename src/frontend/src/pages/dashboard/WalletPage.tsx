@@ -15,7 +15,7 @@ import {
 } from "../../hooks/useQueries";
 import {
   formatDateTime,
-  formatICP,
+  formatRupees,
   txStatusLabel,
   txTypeLabel,
 } from "../../lib/formatters";
@@ -45,14 +45,14 @@ export function WalletPage() {
       toast.error("Enter payment details");
       return;
     }
-    if (wallet && amt > Number(wallet.availableBalance) / 100_000_000) {
+    if (wallet && amt > Number(wallet.availableBalance)) {
       toast.error("Insufficient balance");
       return;
     }
     try {
-      const amountE8s = BigInt(Math.floor(amt * 100_000_000));
+      const amountBigint = BigInt(Math.floor(amt));
       await withdrawalMutation.mutateAsync({
-        amount: amountE8s,
+        amount: amountBigint,
         paymentMethod,
         paymentDetails,
       });
@@ -77,32 +77,40 @@ export function WalletPage() {
       label: "Available Balance",
       key: "availableBalance" as const,
       icon: Wallet,
-      positive: true,
+      gradient: "from-green-900/30 to-green-800/10",
+      border: "border-green-500/20",
+      color: "text-green-400",
     },
     {
       label: "Total Earnings",
       key: "totalEarnings" as const,
       icon: TrendingUp,
-      positive: true,
+      gradient: "from-green-900/20 to-green-800/5",
+      border: "border-green-500/20",
+      color: "text-green-400",
     },
     {
       label: "Pending Balance",
       key: "pendingBalance" as const,
       icon: Clock,
-      positive: false,
+      gradient: "from-green-900/10 to-transparent",
+      border: "border-green-500/10",
+      color: "text-muted-foreground",
     },
     {
       label: "Withdrawn",
       key: "withdrawnAmount" as const,
       icon: ArrowDownLeft,
-      positive: false,
+      gradient: "from-green-900/10 to-transparent",
+      border: "border-green-500/10",
+      color: "text-muted-foreground",
     },
   ];
 
   return (
     <div className="space-y-6">
       <h1 className="font-display text-2xl font-bold flex items-center gap-3">
-        <Wallet size={24} className="text-primary" />
+        <Wallet size={24} className="text-green-400" />
         My Wallet
       </h1>
 
@@ -115,7 +123,7 @@ export function WalletPage() {
             transition={{ delay: i * 0.08 }}
           >
             <Card
-              className="bg-card border-border card-glow"
+              className={`bg-gradient-to-br ${card.gradient} ${card.border} card-glow`}
               data-ocid={`wallet.card.${i + 1}`}
             >
               <CardContent className="p-5">
@@ -123,12 +131,7 @@ export function WalletPage() {
                   <span className="text-muted-foreground text-xs">
                     {card.label}
                   </span>
-                  <card.icon
-                    size={16}
-                    className={
-                      card.positive ? "text-primary" : "text-muted-foreground"
-                    }
-                  />
+                  <card.icon size={16} className={card.color} />
                 </div>
                 {walletLoading ? (
                   <Skeleton
@@ -137,9 +140,9 @@ export function WalletPage() {
                   />
                 ) : (
                   <div
-                    className={`font-display font-bold text-lg ${card.positive ? "text-primary" : "text-muted-foreground"}`}
+                    className={`font-display font-bold text-lg ${card.color}`}
                   >
-                    {wallet ? formatICP(wallet[card.key]) : "0.00 ICP"}
+                    {wallet ? formatRupees(wallet[card.key]) : "\u20B90"}
                   </div>
                 )}
               </CardContent>
@@ -151,7 +154,7 @@ export function WalletPage() {
       <div className="flex justify-end">
         <Button
           onClick={() => setWithdrawOpen(!withdrawOpen)}
-          className="gold-gradient text-primary-foreground font-semibold rounded-full px-6"
+          className="bg-green-600 hover:bg-green-700 text-white font-semibold rounded-full px-6"
           data-ocid="wallet.open_modal_button"
         >
           <ArrowDownLeft size={16} className="mr-2" />
@@ -161,7 +164,7 @@ export function WalletPage() {
 
       {withdrawOpen && (
         <Card
-          className="bg-card border-primary/30 card-glow"
+          className="bg-card border-green-500/30 card-glow"
           data-ocid="wallet.dialog"
         >
           <CardHeader>
@@ -171,20 +174,20 @@ export function WalletPage() {
             <form onSubmit={handleWithdraw} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <Label>Amount (ICP)</Label>
+                  <Label>Amount (₹)</Label>
                   <Input
                     type="number"
-                    min="0.01"
-                    step="0.01"
+                    min="1"
+                    step="1"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0.00"
+                    placeholder="0"
                     className="bg-muted/30 border-border"
                     data-ocid="wallet.input"
                   />
                   {wallet && (
                     <p className="text-xs text-muted-foreground">
-                      Available: {formatICP(wallet.availableBalance)}
+                      Available: {formatRupees(wallet.availableBalance)}
                     </p>
                   )}
                 </div>
@@ -193,7 +196,7 @@ export function WalletPage() {
                   <Input
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value)}
-                    placeholder="Bank Transfer / Crypto"
+                    placeholder="UPI / Bank Transfer"
                     className="bg-muted/30 border-border"
                     data-ocid="wallet.input"
                   />
@@ -204,7 +207,7 @@ export function WalletPage() {
                 <Input
                   value={paymentDetails}
                   onChange={(e) => setPaymentDetails(e.target.value)}
-                  placeholder="Account number, wallet address, etc."
+                  placeholder="UPI ID / Account number, IFSC code"
                   className="bg-muted/30 border-border"
                   data-ocid="wallet.input"
                 />
@@ -212,7 +215,7 @@ export function WalletPage() {
               <div className="flex gap-3">
                 <Button
                   type="submit"
-                  className="gold-gradient text-primary-foreground font-semibold"
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold"
                   disabled={withdrawalMutation.isPending}
                   data-ocid="wallet.submit_button"
                 >
@@ -284,10 +287,14 @@ export function WalletPage() {
                         {formatDateTime(tx.date)}
                       </td>
                       <td
-                        className={`px-5 py-3 text-right font-semibold ${tx.transactionType === "withdrawal" ? "text-destructive" : "text-success"}`}
+                        className={`px-5 py-3 text-right font-semibold ${
+                          tx.transactionType === "withdrawal"
+                            ? "text-destructive"
+                            : "text-success"
+                        }`}
                       >
                         {tx.transactionType === "withdrawal" ? "-" : "+"}
-                        {formatICP(tx.amount)}
+                        {formatRupees(tx.amount)}
                       </td>
                       <td className="px-5 py-3 text-right">
                         <span

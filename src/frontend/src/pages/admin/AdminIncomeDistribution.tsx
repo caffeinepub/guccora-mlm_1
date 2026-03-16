@@ -202,7 +202,7 @@ export function AdminIncomeDistribution() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="dr-amount">Amount (ICP)</Label>
+                <Label htmlFor="dr-amount">Amount (20b9)</Label>
                 <Input
                   id="dr-amount"
                   type="number"
@@ -267,7 +267,7 @@ export function AdminIncomeDistribution() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="bp-amount">Amount (ICP)</Label>
+                <Label htmlFor="bp-amount">Amount (20b9)</Label>
                 <Input
                   id="bp-amount"
                   type="number"
@@ -322,7 +322,7 @@ export function AdminIncomeDistribution() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="lv-amount">Amount (ICP)</Label>
+                <Label htmlFor="lv-amount">Amount (20b9)</Label>
                 <Input
                   id="lv-amount"
                   type="number"

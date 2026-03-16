@@ -3,6 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowUpRight,
+  GitBranch,
   Megaphone,
   TrendingUp,
   Users,
@@ -12,27 +13,47 @@ import { motion } from "motion/react";
 import { useEffect } from "react";
 import { RankBadge } from "../../components/shared/RankBadge";
 import { useInternetIdentity } from "../../hooks/useInternetIdentity";
+import { useMobileSession } from "../../hooks/useMobileSession";
 import {
   useAnnouncements,
+  useMyIncomeStats,
   useMyProfile,
   useMyTransactions,
   useMyWallet,
 } from "../../hooks/useQueries";
-import { formatDateTime, formatICP, txTypeLabel } from "../../lib/formatters";
+import {
+  formatDateTime,
+  formatRupees,
+  txTypeLabel,
+} from "../../lib/formatters";
 
 export function DashboardPage() {
   const { identity } = useInternetIdentity();
+  const { mobileSession } = useMobileSession();
   const navigate = useNavigate();
   const { data: profile, isLoading: profileLoading } = useMyProfile();
   const { data: wallet, isLoading: walletLoading } = useMyWallet();
   const { data: transactions, isLoading: txLoading } = useMyTransactions();
   const { data: announcements } = useAnnouncements();
+  const { data: incomeStats, isLoading: incomeLoading } = useMyIncomeStats();
+
+  const isLoggedIn = !!identity || !!mobileSession?.isLoggedIn;
 
   useEffect(() => {
-    if (!identity) navigate({ to: "/login" });
-  }, [identity, navigate]);
+    if (!isLoggedIn) navigate({ to: "/login" });
+  }, [isLoggedIn, navigate]);
 
   const recentTx = (transactions ?? []).slice(0, 5);
+
+  const getIncomeStat = (key: string): bigint => {
+    if (!incomeStats) return 0n;
+    const s = incomeStats as unknown as Record<string, bigint>;
+    return s[key] ?? 0n;
+  };
+
+  const displayName = mobileSession?.isLoggedIn
+    ? mobileSession.name
+    : (profile?.fullName ?? "Member");
 
   return (
     <div className="space-y-6">
@@ -45,7 +66,7 @@ export function DashboardPage() {
             <h1 className="font-display text-2xl font-bold">
               Welcome back,{" "}
               <span className="gold-gradient-text">
-                {profileLoading ? "..." : (profile?.fullName ?? "Member")}
+                {profileLoading && !mobileSession ? "..." : displayName}
               </span>
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
@@ -56,6 +77,7 @@ export function DashboardPage() {
         </div>
       </motion.div>
 
+      {/* Main wallet stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
@@ -63,32 +85,40 @@ export function DashboardPage() {
             value: walletLoading
               ? null
               : wallet
-                ? formatICP(wallet.availableBalance)
-                : "0.00 ICP",
+                ? formatRupees(wallet.availableBalance)
+                : "\u20B90",
             icon: Wallet,
-            color: "text-primary",
+            gradient: "from-green-900/30 to-green-800/10",
+            border: "border-green-500/20",
+            color: "text-green-400",
           },
           {
             label: "Total Earnings",
             value: walletLoading
               ? null
               : wallet
-                ? formatICP(wallet.totalEarnings)
-                : "0.00 ICP",
+                ? formatRupees(wallet.totalEarnings)
+                : "\u20B90",
             icon: TrendingUp,
-            color: "text-success",
+            gradient: "from-purple-900/30 to-purple-800/10",
+            border: "border-purple-500/20",
+            color: "text-purple-400",
           },
           {
-            label: "Left Leg Volume",
-            value: profileLoading ? null : profile ? "0.00 ICP" : "—",
+            label: "Left Team Count",
+            value: profileLoading ? null : "0",
             icon: Users,
-            color: "text-primary",
+            gradient: "from-purple-900/20 to-purple-800/5",
+            border: "border-purple-500/20",
+            color: "text-purple-400",
           },
           {
-            label: "Right Leg Volume",
-            value: profileLoading ? null : profile ? "0.00 ICP" : "—",
+            label: "Right Team Count",
+            value: profileLoading ? null : "0",
             icon: Users,
-            color: "text-primary",
+            gradient: "from-purple-900/20 to-purple-800/5",
+            border: "border-purple-500/20",
+            color: "text-purple-400",
           },
         ].map((stat, i) => (
           <motion.div
@@ -98,7 +128,7 @@ export function DashboardPage() {
             transition={{ delay: i * 0.08 }}
           >
             <Card
-              className="bg-card border-border card-glow"
+              className={`bg-gradient-to-br ${stat.gradient} ${stat.border} card-glow`}
               data-ocid={`dashboard.card.${i + 1}`}
             >
               <CardContent className="p-5">
@@ -118,6 +148,58 @@ export function DashboardPage() {
                     className={`font-display text-xl font-bold ${stat.color}`}
                   >
                     {stat.value}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Income breakdown */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          {
+            label: "Direct Referral Income",
+            key: "directReferral",
+            icon: Users,
+          },
+          {
+            label: "Binary Pair Income",
+            key: "binaryPair",
+            icon: GitBranch,
+          },
+          {
+            label: "Level Income",
+            key: "levelIncome",
+            icon: TrendingUp,
+          },
+        ].map((item, i) => (
+          <motion.div
+            key={item.label}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.32 + i * 0.08 }}
+          >
+            <Card
+              className="bg-gradient-to-br from-amber-900/30 to-amber-800/10 border-amber-500/20 card-glow"
+              data-ocid={`dashboard.card.${i + 5}`}
+            >
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-muted-foreground text-sm">
+                    {item.label}
+                  </span>
+                  <item.icon size={18} className="text-amber-400" />
+                </div>
+                {incomeLoading ? (
+                  <Skeleton
+                    className="h-7 w-24"
+                    data-ocid="dashboard.loading_state"
+                  />
+                ) : (
+                  <div className="font-display text-xl font-bold text-amber-400">
+                    {formatRupees(getIncomeStat(item.key))}
                   </div>
                 )}
               </CardContent>
@@ -175,10 +257,14 @@ export function DashboardPage() {
                         </div>
                       </div>
                       <div
-                        className={`font-semibold text-sm ${tx.transactionType === "withdrawal" ? "text-destructive" : "text-success"}`}
+                        className={`font-semibold text-sm ${
+                          tx.transactionType === "withdrawal"
+                            ? "text-destructive"
+                            : "text-success"
+                        }`}
                       >
                         {tx.transactionType === "withdrawal" ? "-" : "+"}
-                        {formatICP(tx.amount)}
+                        {formatRupees(tx.amount)}
                       </div>
                     </div>
                   ))}

@@ -3,12 +3,16 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { useInternetIdentity } from "../../hooks/useInternetIdentity";
+import { useMobileSession } from "../../hooks/useMobileSession";
 
 export function PublicLayout({ children }: { children: React.ReactNode }) {
   const { identity } = useInternetIdentity();
+  const { mobileSession } = useMobileSession();
   const [mobileOpen, setMobileOpen] = useState(false);
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
+
+  const isLoggedIn = !!identity || !!mobileSession?.isLoggedIn;
 
   const navLinks = [
     { to: "/", label: "Home" },
@@ -54,7 +58,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
             </nav>
 
             <div className="hidden md:flex items-center gap-3">
-              {identity ? (
+              {isLoggedIn ? (
                 <Link to="/dashboard">
                   <Button
                     variant="default"
@@ -85,6 +89,15 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
                   </Link>
                 </>
               )}
+              <Link to="/admin">
+                <Button
+                  variant="outline"
+                  className="border-red-500/50 text-red-400 hover:bg-red-500/10 text-sm"
+                  data-ocid="nav.secondary_button"
+                >
+                  Admin Panel
+                </Button>
+              </Link>
             </div>
 
             <button
@@ -112,7 +125,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
               </Link>
             ))}
             <div className="pt-2 flex flex-col gap-2">
-              {identity ? (
+              {isLoggedIn ? (
                 <Link to="/dashboard" onClick={() => setMobileOpen(false)}>
                   <Button
                     className="w-full gold-gradient"
@@ -142,6 +155,15 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
                   </Link>
                 </>
               )}
+              <Link to="/admin" onClick={() => setMobileOpen(false)}>
+                <Button
+                  variant="outline"
+                  className="w-full border-red-500/50 text-red-400 hover:bg-red-500/10"
+                  data-ocid="nav.secondary_button"
+                >
+                  Admin Panel
+                </Button>
+              </Link>
             </div>
           </div>
         )}

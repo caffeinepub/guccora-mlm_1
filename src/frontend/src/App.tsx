@@ -5,7 +5,6 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
-  redirect,
 } from "@tanstack/react-router";
 import { AdminLayout } from "./components/layout/AdminLayout";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
@@ -18,7 +17,9 @@ import { RegisterPage } from "./pages/RegisterPage";
 import { AdminAnnouncements } from "./pages/admin/AdminAnnouncements";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
 import { AdminIncomeDistribution } from "./pages/admin/AdminIncomeDistribution";
+import { AdminLogin } from "./pages/admin/AdminLogin";
 import { AdminPackages } from "./pages/admin/AdminPackages";
+import { AdminTreePage } from "./pages/admin/AdminTreePage";
 import { AdminUsers } from "./pages/admin/AdminUsers";
 import { AdminWithdrawals } from "./pages/admin/AdminWithdrawals";
 import { DashboardPage } from "./pages/dashboard/DashboardPage";
@@ -103,6 +104,12 @@ const planRoute = createRoute({
   component: PlanPage,
 });
 
+const adminLoginRoute = createRoute({
+  getParentRoute: () => publicLayoutRoute,
+  path: "/admin-login",
+  component: AdminLogin,
+});
+
 // Dashboard pages
 const dashboardRoute = createRoute({
   getParentRoute: () => dashboardLayoutRoute,
@@ -183,6 +190,12 @@ const adminIncomeRoute = createRoute({
   component: AdminIncomeDistribution,
 });
 
+const adminTreeRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: "/admin/tree",
+  component: AdminTreePage,
+});
+
 const routeTree = rootRoute.addChildren([
   publicLayoutRoute.addChildren([
     indexRoute,
@@ -190,6 +203,7 @@ const routeTree = rootRoute.addChildren([
     registerRoute,
     aboutRoute,
     planRoute,
+    adminLoginRoute,
   ]),
   dashboardLayoutRoute.addChildren([
     dashboardRoute,
@@ -207,6 +221,7 @@ const routeTree = rootRoute.addChildren([
     adminAnnouncementsRoute,
     adminPackagesRoute,
     adminIncomeRoute,
+    adminTreeRoute,
   ]),
 ]);
 

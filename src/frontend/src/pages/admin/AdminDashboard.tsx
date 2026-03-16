@@ -2,7 +2,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@tanstack/react-router";
-import { Loader2, Shield, TrendingUp, UserCheck, Users } from "lucide-react";
+import {
+  Loader2,
+  Network,
+  Shield,
+  TrendingUp,
+  UserCheck,
+  Users,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import {
@@ -10,7 +17,7 @@ import {
   useGlobalStats,
   useIsAdmin,
 } from "../../hooks/useQueries";
-import { formatICP } from "../../lib/formatters";
+import { formatRupees } from "../../lib/formatters";
 
 export function AdminDashboard() {
   const { data: stats, isLoading } = useGlobalStats();
@@ -33,19 +40,19 @@ export function AdminDashboard() {
       label: "Total Users",
       value: stats ? Number(stats.totalUsers).toLocaleString() : null,
       icon: Users,
-      color: "text-primary",
+      color: "text-red-400",
     },
     {
       label: "Active Users",
       value: stats ? Number(stats.activeUsers).toLocaleString() : null,
       icon: UserCheck,
-      color: "text-success",
+      color: "text-red-400",
     },
     {
       label: "Total Paid Out",
-      value: stats ? formatICP(stats.totalPaidOut) : null,
+      value: stats ? formatRupees(stats.totalPaidOut) : null,
       icon: TrendingUp,
-      color: "text-primary",
+      color: "text-red-400",
     },
   ];
 
@@ -53,7 +60,7 @@ export function AdminDashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-2xl font-bold flex items-center gap-3">
-          <Shield size={24} className="text-primary" />
+          <Shield size={24} className="text-red-400" />
           Admin Overview
         </h1>
         {!isAdmin && (
@@ -90,7 +97,7 @@ export function AdminDashboard() {
             transition={{ delay: i * 0.08 }}
           >
             <Card
-              className="bg-card border-border card-glow"
+              className="bg-card border-red-500/20 card-glow"
               data-ocid={`admin.card.${i + 1}`}
             >
               <CardContent className="p-5">
@@ -119,7 +126,7 @@ export function AdminDashboard() {
       </div>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[
           {
             to: "/admin/users",
@@ -145,11 +152,23 @@ export function AdminDashboard() {
             icon: UserCheck,
             desc: "Manage membership packages",
           },
+          {
+            to: "/admin/income",
+            label: "Income Reports",
+            icon: TrendingUp,
+            desc: "View and manage income distribution",
+          },
+          {
+            to: "/admin/tree",
+            label: "Tree View",
+            icon: Network,
+            desc: "Visual binary tree structure",
+          },
         ].map((item, i) => (
           <Link key={item.to} to={item.to} data-ocid={`admin.link.${i + 1}`}>
-            <Card className="bg-card border-border hover:border-primary/40 transition-all cursor-pointer h-full">
+            <Card className="bg-card border-red-500/10 hover:border-red-500/40 transition-all cursor-pointer h-full">
               <CardContent className="p-5">
-                <item.icon size={20} className="text-primary mb-3" />
+                <item.icon size={20} className="text-red-400 mb-3" />
                 <div className="font-semibold text-sm mb-1">{item.label}</div>
                 <div className="text-xs text-muted-foreground">{item.desc}</div>
               </CardContent>

@@ -9,11 +9,12 @@ import {
   LogOut,
   Megaphone,
   Menu,
+  Network,
   Package,
   Users,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useInternetIdentity } from "../../hooks/useInternetIdentity";
 
 const adminNavItems = [
@@ -23,17 +24,28 @@ const adminNavItems = [
   { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
   { to: "/admin/packages", label: "Packages", icon: Package },
   { to: "/admin/income", label: "Income Distribution", icon: DollarSign },
+  { to: "/admin/tree", label: "Tree View", icon: Network },
 ];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { clear } = useInternetIdentity();
+  const { identity, clear } = useInternetIdentity();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const routerState = useRouterState();
   const navigate = useNavigate();
   const currentPath = routerState.location.pathname;
 
+  const hasAdminSession =
+    localStorage.getItem("guccora_admin_session") === "true";
+
+  useEffect(() => {
+    if (!identity && !hasAdminSession) {
+      navigate({ to: "/admin-login" });
+    }
+  }, [identity, hasAdminSession, navigate]);
+
   const handleLogout = () => {
     clear();
+    localStorage.removeItem("guccora_admin_session");
     navigate({ to: "/" });
   };
 
@@ -50,7 +62,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <div className="font-display text-base font-bold gold-gradient-text tracking-widest">
               GUCCORA
             </div>
-            <div className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full font-bold inline-block mt-0.5">
+            <div className="text-xs bg-red-600 text-white px-2 py-0.5 rounded-full font-bold inline-block mt-0.5">
               ADMIN
             </div>
           </div>
@@ -137,7 +149,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       )}
 
       <div className="flex-1 lg:ml-64 flex flex-col">
-        <header className="sticky top-0 z-30 glass-surface border-b border-border px-4 sm:px-6 h-14 flex items-center gap-4">
+        <header className="sticky top-0 z-30 glass-surface border-b border-red-500/20 px-4 sm:px-6 h-14 flex items-center gap-4">
           <button
             type="button"
             className="lg:hidden text-muted-foreground"
@@ -145,7 +157,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           >
             <Menu size={22} />
           </button>
-          <h1 className="text-sm font-semibold text-primary tracking-wide">
+          <h1 className="text-sm font-semibold text-red-400 tracking-wide">
             Administration Panel
           </h1>
         </header>

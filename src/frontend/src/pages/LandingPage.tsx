@@ -146,7 +146,7 @@ export function LandingPage() {
 
             <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 font-body leading-relaxed">
               GUCCORA is a premium binary MLM platform where ambition meets
-              opportunity. Join thousands of members earning real ICP on the
+              opportunity. Join thousands of members earning real income on the
               blockchain.
             </p>
 
@@ -175,7 +175,7 @@ export function LandingPage() {
             <div className="mt-12 grid grid-cols-3 gap-6 max-w-md mx-auto">
               {[
                 { label: "Active Members", value: "10,000+" },
-                { label: "Total Paid Out", value: "50K ICP" },
+                { label: "Total Paid Out", value: "₹50L+" },
                 { label: "Countries", value: "45+" },
               ].map((stat) => (
                 <div key={stat.label} className="text-center">

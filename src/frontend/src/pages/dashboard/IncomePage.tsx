@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -12,6 +12,7 @@ import {
 import {
   ArrowDownCircle,
   BarChart3,
+  CheckCircle2,
   Clock,
   GitBranch,
   TrendingUp,
@@ -130,6 +131,26 @@ export function IncomePage() {
             Track your earnings across all income streams
           </p>
         </div>
+      </motion.div>
+
+      {/* Auto-income info banner */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1, duration: 0.4 }}
+      >
+        <Alert className="border-emerald-500/40 bg-emerald-500/10 text-emerald-200">
+          <CheckCircle2 size={16} className="text-emerald-400" />
+          <AlertDescription className="text-emerald-200 text-sm">
+            <strong className="text-emerald-300">
+              Your income is credited automatically.
+            </strong>{" "}
+            Direct referral income is added when someone joins under you. Binary
+            pair income is added when both your left and right legs are filled.
+            Level income (up to 10 levels) is credited when your downline grows
+            or activates plans.
+          </AlertDescription>
+        </Alert>
       </motion.div>
 
       {/* Stat Cards */}

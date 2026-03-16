@@ -1,3 +1,4 @@
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,7 +17,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Principal } from "@icp-sdk/core/principal";
-import { DollarSign, GitBranch, Layers, Loader2, Users } from "lucide-react";
+import {
+  AlertTriangle,
+  GitBranch,
+  Layers,
+  Loader2,
+  Users,
+  Wrench,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -68,12 +76,12 @@ export function AdminIncomeDistribution() {
         amount: BigInt(Math.round(amount * 100_000_000)),
         fromUser,
       });
-      toast.success("Direct referral income awarded successfully");
+      toast.success("Direct referral correction applied successfully");
       setDrUser("");
       setDrAmount("");
       setDrFrom("");
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to award income");
+      toast.error(e?.message ?? "Failed to apply correction");
     }
   };
 
@@ -87,11 +95,11 @@ export function AdminIncomeDistribution() {
         toUser,
         amount: BigInt(Math.round(amount * 100_000_000)),
       });
-      toast.success("Binary pair income awarded successfully");
+      toast.success("Binary pair correction applied successfully");
       setBpUser("");
       setBpAmount("");
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to award income");
+      toast.error(e?.message ?? "Failed to apply correction");
     }
   };
 
@@ -113,13 +121,13 @@ export function AdminIncomeDistribution() {
         level: BigInt(level),
         fromUser,
       });
-      toast.success(`Level ${level} income awarded successfully`);
+      toast.success(`Level ${level} income correction applied successfully`);
       setLvUser("");
       setLvAmount("");
       setLvLevel("1");
       setLvFrom("");
     } catch (e: any) {
-      toast.error(e?.message ?? "Failed to award income");
+      toast.error(e?.message ?? "Failed to apply correction");
     }
   };
 
@@ -133,16 +141,36 @@ export function AdminIncomeDistribution() {
         className="flex items-center gap-3"
       >
         <div className="h-10 w-10 rounded-xl gold-gradient flex items-center justify-center">
-          <DollarSign size={20} className="text-primary-foreground" />
+          <Wrench size={20} className="text-primary-foreground" />
         </div>
         <div>
           <h1 className="text-2xl font-display font-bold gold-gradient-text">
-            Income Distribution
+            Manual Corrections &amp; Bonuses
           </h1>
           <p className="text-sm text-muted-foreground">
-            Manually award income to members
+            Income is distributed automatically on registration and plan
+            activation. Use this page only for corrections or special bonuses.
           </p>
         </div>
+      </motion.div>
+
+      {/* Auto-income notice banner */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15, duration: 0.4 }}
+      >
+        <Alert className="border-amber-500/40 bg-amber-500/10 text-amber-200">
+          <AlertTriangle size={16} className="text-amber-400" />
+          <AlertDescription className="text-amber-200 text-sm">
+            <strong className="text-amber-300">
+              Automatic income is now active.
+            </strong>{" "}
+            Direct referral, binary pair, and level income are credited
+            automatically when users join or activate plans. Only use this panel
+            for corrections or one-off bonuses.
+          </AlertDescription>
+        </Alert>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -150,16 +178,16 @@ export function AdminIncomeDistribution() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.4 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
         >
           <Card className="border-emerald-500/20 bg-card/60 backdrop-blur-sm">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Users size={18} className="text-emerald-400" />
-                Award Direct Referral Income
+                Correction: Direct Referral
               </CardTitle>
               <CardDescription>
-                Reward a user for a direct referral
+                Use only for manual corrections or special bonuses
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -205,7 +233,7 @@ export function AdminIncomeDistribution() {
                 {awardDirect.isPending ? (
                   <Loader2 size={16} className="animate-spin mr-2" />
                 ) : null}
-                Award Direct Referral
+                Apply Correction
               </Button>
             </CardContent>
           </Card>
@@ -215,16 +243,16 @@ export function AdminIncomeDistribution() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.4 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
         >
           <Card className="border-blue-500/20 bg-card/60 backdrop-blur-sm">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base">
                 <GitBranch size={18} className="text-blue-400" />
-                Award Binary Pair Income
+                Correction: Binary Pair
               </CardTitle>
               <CardDescription>
-                Award income for a completed binary pair
+                Use only for manual corrections or special bonuses
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -260,7 +288,7 @@ export function AdminIncomeDistribution() {
                 {awardBinary.isPending ? (
                   <Loader2 size={16} className="animate-spin mr-2" />
                 ) : null}
-                Award Binary Pair
+                Apply Correction
               </Button>
             </CardContent>
           </Card>
@@ -270,16 +298,16 @@ export function AdminIncomeDistribution() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.4 }}
+          transition={{ delay: 0.4, duration: 0.4 }}
         >
           <Card className="border-orange-500/20 bg-card/60 backdrop-blur-sm">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Layers size={18} className="text-orange-400" />
-                Award Level Income (10 Levels)
+                Correction: Level Income
               </CardTitle>
               <CardDescription>
-                Distribute income across 10 upline levels
+                Use only for manual corrections or special bonuses
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -340,7 +368,7 @@ export function AdminIncomeDistribution() {
                 {awardLevel.isPending ? (
                   <Loader2 size={16} className="animate-spin mr-2" />
                 ) : null}
-                Award Level Income
+                Apply Correction
               </Button>
             </CardContent>
           </Card>

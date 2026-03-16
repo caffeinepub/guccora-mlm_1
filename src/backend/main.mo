@@ -11,9 +11,9 @@ import Iter "mo:core/Iter";
 import Int "mo:core/Int";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
-import Migration "migration";
 
-(with migration = Migration.run)
+
+
 actor {
   // Types
   public type User = {
@@ -216,6 +216,101 @@ actor {
     };
   };
 
+
+  // ── AUTO INCOME DISTRIBUTION ─────────────────────────────────────────────
+  // Base income amounts (in smallest unit, e.g. points/rupees)
+  let DIRECT_REFERRAL_AMOUNT : Nat = 100;  // flat direct referral on join
+  let BINARY_PAIR_AMOUNT     : Nat = 200;  // flat binary pair when both legs filled
+  // Level income percentages (basis points of DIRECT_REFERRAL_AMOUNT)
+  func levelIncomeAmount(level : Nat) : Nat {
+    if (level == 1)      { 50 }
+    else if (level == 2) { 40 }
+    else if (level <= 5) { 20 }
+    else                 { 10 }
+  };
+
+  // Walk up ancestors and pay level income
+  func distributeLevelIncome(newUserPrincipal : Principal, baseAmount : Nat) {
+    var current = newUserPrincipal;
+    var level = 1;
+    label levelLoop while (level <= 10) {
+      switch (users.get(current)) {
+        case null { break levelLoop };
+        case (?u) {
+          let sponsorPrinc = u.sponsorId;
+          // stop if sponsor is self (root node)
+          if (sponsorPrinc == current) { break levelLoop };
+          switch (wallets.get(sponsorPrinc)) {
+            case null {};  // sponsor has no wallet, skip
+            case (?_) {
+              let amt = (baseAmount * levelIncomeAmount(level)) / 1000;
+              if (amt > 0) {
+                creditIncomeToWallet(sponsorPrinc, amt, #levelIncome, ?newUserPrincipal);
+              };
+            };
+          };
+          current := sponsorPrinc;
+          level += 1;
+        };
+      };
+    };
+  };
+
+  // Called after successful registration
+  func autoDistributeOnJoin(newUserPrincipal : Principal, sponsorPrincipal : Principal) {
+    // 1. Direct referral income to sponsor
+    switch (wallets.get(sponsorPrincipal)) {
+      case null {};
+      case (?_) {
+        creditIncomeToWallet(sponsorPrincipal, DIRECT_REFERRAL_AMOUNT, #directReferralBonus, ?newUserPrincipal);
+      };
+    };
+
+    // 2. Binary pair income: check if sponsor now has BOTH children
+    switch (users.get(sponsorPrincipal)) {
+      case null {};
+      case (?sp) {
+        switch (sp.leftChild, sp.rightChild) {
+          case (?_, ?_) {
+            switch (wallets.get(sponsorPrincipal)) {
+              case null {};
+              case (?_) {
+                creditIncomeToWallet(sponsorPrincipal, BINARY_PAIR_AMOUNT, #binaryCommission, ?newUserPrincipal);
+              };
+            };
+          };
+          case _ {};
+        };
+      };
+    };
+
+    // 3. Level income up 10 ancestors
+    distributeLevelIncome(newUserPrincipal, 1000);
+  };
+
+  // Called after plan/package purchase
+  func autoDistributeOnPlanActivation(buyer : Principal, packagePrice : Nat) {
+    switch (users.get(buyer)) {
+      case null {};
+      case (?u) {
+        let sponsorPrincipal = u.sponsorId;
+        // Direct referral income = 10% of package price to direct sponsor
+        let directAmt = packagePrice / 10;
+        switch (wallets.get(sponsorPrincipal)) {
+          case null {};
+          case (?_) {
+            if (directAmt > 0) {
+              creditIncomeToWallet(sponsorPrincipal, directAmt, #directReferralBonus, ?buyer);
+            };
+          };
+        };
+        // Level income based on package price
+        distributeLevelIncome(buyer, packagePrice);
+      };
+    };
+  };
+  // ── END AUTO INCOME DISTRIBUTION ─────────────────────────────────────────
+
   // User Profile Functions (Required by Frontend)
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
@@ -413,6 +508,9 @@ actor {
     // --- Grant #user role so the new member can access all user APIs ---
     accessControlState.userRoles.add(caller, #user);
 
+    // --- Auto income distribution on join ---
+    autoDistributeOnJoin(caller, sponsorId);
+
     caller;
   };
 
@@ -534,6 +632,14 @@ actor {
       Runtime.trap("Package not found");
     };
     packagePurchases.put(0, (caller, packageId));
+
+    // --- Auto income distribution on plan activation ---
+    switch (packages.get(packageId)) {
+      case null {};
+      case (?pkg) {
+        autoDistributeOnPlanActivation(caller, pkg.price);
+      };
+    };
   };
 
   // Announcements - Anyone can view

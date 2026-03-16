@@ -205,6 +205,7 @@ export const idlService = IDL.Service({
   'processWithdrawalRequest' : IDL.Func([IDL.Text, IDL.Bool], [], []),
   'purchasePackage' : IDL.Func([IDL.Nat], [], []),
   'registerMobileUser' : IDL.Func([IDL.Text, IDL.Text, IDL.Text, IDL.Text], [IDL.Text], []),
+  'purchaseMobileUserPlan' : IDL.Func([IDL.Text, IDL.Nat], [IDL.Text], []),
   'registerUser' : IDL.Func(
       [
         IDL.Text,
@@ -425,6 +426,7 @@ export const idlFactory = ({ IDL }) => {
     'processWithdrawalRequest' : IDL.Func([IDL.Text, IDL.Bool], [], []),
     'purchasePackage' : IDL.Func([IDL.Nat], [], []),
     'registerMobileUser' : IDL.Func([IDL.Text, IDL.Text, IDL.Text, IDL.Text], [IDL.Text], []),
+    'purchaseMobileUserPlan' : IDL.Func([IDL.Text, IDL.Nat], [IDL.Text], []),
     'registerUser' : IDL.Func(
         [
           IDL.Text,

@@ -10,7 +10,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  ArrowDownCircle,
   BarChart3,
   CheckCircle2,
   Clock,
@@ -20,8 +19,10 @@ import {
   Users,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { TransactionStatus, TransactionType } from "../../backend";
+import { useMobileSession } from "../../hooks/useMobileSession";
 import {
+  useMobileIncomeStats,
+  useMobileUserTransactions,
   useMyIncomeStats,
   useMyTransactions,
   useMyWithdrawalRequests,
@@ -31,31 +32,6 @@ import {
   formatRupees,
   txTypeLabel,
 } from "../../lib/formatters";
-
-function StatusBadge({ status }: { status: TransactionStatus }) {
-  const variants: Record<TransactionStatus, string> = {
-    [TransactionStatus.pending]:
-      "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-    [TransactionStatus.approved]:
-      "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-    [TransactionStatus.rejected]:
-      "bg-red-500/20 text-red-400 border-red-500/30",
-  };
-  const labels: Record<TransactionStatus, string> = {
-    [TransactionStatus.pending]: "Pending",
-    [TransactionStatus.approved]: "Approved",
-    [TransactionStatus.rejected]: "Rejected",
-  };
-  return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${
-        variants[status] ?? "bg-muted text-muted-foreground"
-      }`}
-    >
-      {labels[status] ?? status}
-    </span>
-  );
-}
 
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -100,7 +76,7 @@ const statCards = [
     borderColor: "border-amber-500/20",
   },
   {
-    key: "bonusIncome",
+    key: "rankBonus",
     label: "Bonus Income",
     icon: Gift,
     gradient: "from-amber-900/30 to-amber-800/10",
@@ -110,18 +86,38 @@ const statCards = [
 ];
 
 export function IncomePage() {
-  const { data: stats, isLoading: statsLoading } = useMyIncomeStats();
-  const { data: transactions, isLoading: txLoading } = useMyTransactions();
+  const { mobileSession } = useMobileSession();
+  const isMobile = !!mobileSession?.isLoggedIn;
+
+  const { data: icStats, isLoading: icStatsLoading } = useMyIncomeStats();
+  const { data: mobileStats, isLoading: mobileStatsLoading } =
+    useMobileIncomeStats();
+  const { data: icTransactions, isLoading: icTxLoading } = useMyTransactions();
+  const { data: mobileTxs, isLoading: mobileTxLoading } =
+    useMobileUserTransactions();
   const { data: withdrawals, isLoading: wdLoading } = useMyWithdrawalRequests();
 
-  const incomeTransactions = (transactions ?? []).filter(
-    (tx) => tx.transactionType !== TransactionType.withdrawal,
-  );
+  const stats = isMobile ? mobileStats : icStats;
+  const statsLoading = isMobile ? mobileStatsLoading : icStatsLoading;
+  const txLoading = isMobile ? mobileTxLoading : icTxLoading;
+
+  const incomeTransactions = isMobile
+    ? (mobileTxs ?? []).map((tx, idx) => ({
+        transactionId: tx.txId ?? `mtx-${idx}`,
+        transactionType: tx.txType,
+        amount: BigInt(tx.amount ?? 0),
+        date: BigInt(tx.date ?? 0),
+        status: "approved" as const,
+      }))
+    : (icTransactions ?? []).filter(
+        (tx) => tx.transactionType !== "withdrawal",
+      );
 
   const getStatValue = (key: string): bigint => {
     if (!stats) return 0n;
-    const s = stats as unknown as Record<string, bigint>;
-    return s[key] ?? 0n;
+    const s = stats as unknown as Record<string, bigint | number>;
+    const val = s[key] ?? 0;
+    return typeof val === "bigint" ? val : BigInt(val);
   };
 
   return (
@@ -161,8 +157,7 @@ export function IncomePage() {
             Direct referral income is added when someone joins under you. Binary
             pair income is added when both your left and right legs are filled.
             Level income (up to 10 levels) is credited when your downline grows
-            or activates plans. Bonus income is awarded for special
-            achievements.
+            or activates plans.
           </AlertDescription>
         </Alert>
       </motion.div>
@@ -234,7 +229,7 @@ export function IncomePage() {
                   No income transactions yet
                 </p>
                 <p className="text-muted-foreground/60 text-xs mt-1">
-                  Start referring members to earn income
+                  Purchase a plan or refer members to start earning
                 </p>
               </div>
             ) : (
@@ -277,7 +272,9 @@ export function IncomePage() {
                             +{formatRupees(tx.amount)}
                           </TableCell>
                           <TableCell className="text-center">
-                            <StatusBadge status={tx.status} />
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                              Approved
+                            </span>
                           </TableCell>
                         </motion.tr>
                       ))}
@@ -290,93 +287,91 @@ export function IncomePage() {
         </Card>
       </motion.div>
 
-      {/* Withdrawal Requests */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.4 }}
-      >
-        <Card className="border-border/50">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-base font-semibold">
-              <ArrowDownCircle size={18} className="text-amber-400" />
-              My Withdrawal Requests
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {wdLoading ? (
-              <div
-                className="p-6 space-y-3"
-                data-ocid="withdrawals.loading_state"
-              >
-                {Array.from({ length: 3 }).map((_, i) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: skeleton
-                  <Skeleton key={i} className="h-10 w-full rounded" />
-                ))}
-              </div>
-            ) : !withdrawals || withdrawals.length === 0 ? (
-              <div
-                className="flex flex-col items-center justify-center py-12 text-center"
-                data-ocid="withdrawals.empty_state"
-              >
-                <Clock size={36} className="text-muted-foreground/30 mb-3" />
-                <p className="text-muted-foreground text-sm">
-                  No withdrawal requests yet
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table data-ocid="withdrawals.table">
-                  <TableHeader>
-                    <TableRow className="border-border/50">
-                      <TableHead className="text-xs uppercase tracking-wider">
-                        Request ID
-                      </TableHead>
-                      <TableHead className="text-xs uppercase tracking-wider">
-                        Amount
-                      </TableHead>
-                      <TableHead className="text-xs uppercase tracking-wider">
-                        Method
-                      </TableHead>
-                      <TableHead className="text-xs uppercase tracking-wider">
-                        Requested
-                      </TableHead>
-                      <TableHead className="text-xs uppercase tracking-wider text-center">
-                        Status
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {withdrawals.map((wd, idx) => (
-                      <TableRow
-                        key={wd.requestId}
-                        className="border-border/30 hover:bg-muted/20"
-                        data-ocid={`withdrawals.item.${idx + 1}`}
-                      >
-                        <TableCell className="text-xs font-mono text-muted-foreground">
-                          {wd.requestId.slice(0, 12)}...
-                        </TableCell>
-                        <TableCell className="font-semibold">
-                          {formatRupees(wd.amount)}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {wd.paymentMethod}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {formatDateTime(wd.requestDate)}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <StatusBadge status={wd.status} />
-                        </TableCell>
+      {/* Withdrawal Requests - only for IC users */}
+      {!isMobile && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.4 }}
+        >
+          <Card className="border-border/50">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                <Clock size={18} className="text-amber-400" />
+                My Withdrawal Requests
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {wdLoading ? (
+                <div
+                  className="p-6 space-y-3"
+                  data-ocid="withdrawals.loading_state"
+                >
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: skeleton
+                    <Skeleton key={i} className="h-10 w-full rounded" />
+                  ))}
+                </div>
+              ) : !withdrawals || withdrawals.length === 0 ? (
+                <div
+                  className="flex flex-col items-center justify-center py-12 text-center"
+                  data-ocid="withdrawals.empty_state"
+                >
+                  <Clock size={36} className="text-muted-foreground/30 mb-3" />
+                  <p className="text-muted-foreground text-sm">
+                    No withdrawal requests yet
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table data-ocid="withdrawals.table">
+                    <TableHeader>
+                      <TableRow className="border-border/50">
+                        <TableHead className="text-xs uppercase tracking-wider">
+                          Request ID
+                        </TableHead>
+                        <TableHead className="text-xs uppercase tracking-wider">
+                          Amount
+                        </TableHead>
+                        <TableHead className="text-xs uppercase tracking-wider">
+                          Requested
+                        </TableHead>
+                        <TableHead className="text-xs uppercase tracking-wider text-center">
+                          Status
+                        </TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
+                    </TableHeader>
+                    <TableBody>
+                      {withdrawals.map((wd, idx) => (
+                        <TableRow
+                          key={wd.requestId}
+                          className="border-border/30 hover:bg-muted/20"
+                          data-ocid={`withdrawals.item.${idx + 1}`}
+                        >
+                          <TableCell className="text-xs font-mono text-muted-foreground">
+                            {wd.requestId.slice(0, 12)}...
+                          </TableCell>
+                          <TableCell className="font-semibold">
+                            {formatRupees(wd.amount)}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {formatDateTime(wd.requestDate)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                              {String(wd.status)}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
     </div>
   );
 }

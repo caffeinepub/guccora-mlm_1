@@ -84,20 +84,20 @@ export function AdminPackages() {
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Premium Pack"
+                    placeholder="e.g. Gold Plan"
                     className="bg-muted/30 border-border"
                     data-ocid="packages.input"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label>Price (20b9)</Label>
+                  <Label>Price (₹)</Label>
                   <Input
                     type="number"
-                    min="0.01"
-                    step="0.01"
+                    min="1"
+                    step="1"
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
-                    placeholder="1.00"
+                    placeholder="e.g. 499"
                     className="bg-muted/30 border-border"
                     data-ocid="packages.input"
                   />
@@ -108,7 +108,7 @@ export function AdminPackages() {
                 <Textarea
                   value={benefits}
                   onChange={(e) => setBenefits(e.target.value)}
-                  placeholder="Binary commission 20%, Direct referral bonus, Rank bonus eligibility"
+                  placeholder="Binary Income, Direct Referral Income, 10 Level Income, Rank Bonus"
                   rows={3}
                   className="bg-muted/30 border-border"
                   data-ocid="packages.textarea"
@@ -146,10 +146,10 @@ export function AdminPackages() {
 
       {isLoading ? (
         <div
-          className="grid grid-cols-1 md:grid-cols-3 gap-4"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
           data-ocid="packages.loading_state"
         >
-          {["a", "b", "c"].map((k) => (
+          {["a", "b", "c", "d"].map((k) => (
             <Skeleton key={k} className="h-48 w-full rounded-xl" />
           ))}
         </div>
@@ -164,7 +164,7 @@ export function AdminPackages() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {packages.map((pkg, i) => (
             <motion.div
               key={pkg.id.toString()}

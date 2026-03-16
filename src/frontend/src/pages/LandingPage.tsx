@@ -91,31 +91,31 @@ const FALLBACK_PRODUCTS: Product[] = [
 const incomePlans = [
   {
     price: 499,
-    label: "Starter",
+    label: "Starter Plan",
     popular: false,
     icon: Star,
     benefits: [
       "Direct Income: 10%",
       "Binary Income: 5%",
-      "5 Level Income",
+      "10 Level Income",
       "Welcome Bonus",
     ],
   },
   {
     price: 999,
-    label: "Silver",
+    label: "Silver Plan",
     popular: false,
     icon: BadgeCheck,
     benefits: [
       "Direct Income: 12%",
       "Binary Income: 8%",
-      "7 Level Income",
+      "10 Level Income",
       "Rank Bonus",
     ],
   },
   {
     price: 1999,
-    label: "Gold",
+    label: "Gold Plan",
     popular: true,
     icon: Crown,
     benefits: [
@@ -128,7 +128,7 @@ const incomePlans = [
   },
   {
     price: 2999,
-    label: "Diamond",
+    label: "Diamond Plan",
     popular: false,
     icon: Gift,
     benefits: [

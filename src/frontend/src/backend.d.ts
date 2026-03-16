@@ -78,6 +78,30 @@ export interface UserProfile {
     email: string;
     phone: string;
 }
+export interface MobileUserPublic {
+    userId: string;
+    fullName: string;
+    phone: string;
+    sponsorCode: string;
+    joinDate: Time;
+    isActive: boolean;
+    walletBalance: bigint;
+    totalEarnings: bigint;
+}
+export interface MobileTxRecord {
+    txId: string;
+    phone: string;
+    amount: bigint;
+    txType: string;
+    date: Time;
+}
+export interface MobileIncomeStats {
+    directReferral: bigint;
+    binaryPair: bigint;
+    levelIncome: bigint;
+    rankBonus: bigint;
+    totalIncome: bigint;
+}
 export enum Position {
     left = "left",
     right = "right"
@@ -129,6 +153,10 @@ export interface backendInterface {
         totalUsers: bigint;
     }>;
     getIncomeStats(userId: Principal): Promise<IncomeStats>;
+    getMobileUserByPhone(phone: string): Promise<MobileUserPublic | null>;
+    getMobileUserActivePlan(phone: string): Promise<bigint | null>;
+    getMobileUserTransactions(phone: string): Promise<Array<MobileTxRecord>>;
+    getMobileUserIncomeStats(phone: string): Promise<MobileIncomeStats>;
     getMyIncomeStats(): Promise<IncomeStats>;
     getMyTransactions(): Promise<Array<Transaction>>;
     getMyWallet(): Promise<Wallet | null>;
@@ -143,9 +171,12 @@ export interface backendInterface {
     lookupSponsorByCode(code: string): Promise<Principal | null>;
     processWithdrawalRequest(requestId: string, approve: boolean): Promise<void>;
     purchasePackage(packageId: bigint): Promise<void>;
+    purchaseMobileUserPlan(phone: string, planId: bigint): Promise<string>;
+    registerMobileUser(fullName: string, phone: string, password: string, sponsorCode: string): Promise<string>;
     registerUser(username: string, fullName: string, email: string, phone: string, sponsorId: Principal, position: Position, sponsorCode: string | null): Promise<Principal>;
     requestWithdrawal(amount: bigint, paymentMethod: string, paymentDetails: string): Promise<string>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     setUserActiveStatus(userId: Principal, isActive: boolean): Promise<void>;
     updateUserRank(userId: Principal, newRank: Rank): Promise<void>;
+    verifyMobileLogin(phone: string, password: string): Promise<MobileUserPublic | null>;
 }

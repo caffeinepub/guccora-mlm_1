@@ -16,10 +16,13 @@ import { RankBadge } from "../../components/shared/RankBadge";
 import { useMobileSession } from "../../hooks/useMobileSession";
 import {
   useAnnouncements,
+  useMobileIncomeStats,
+  useMobileUserData,
+  useMobileUserTransactions,
   useMyIncomeStats,
   useMyProfile,
   useMyTransactions,
-  useMyWallet,
+  useUnifiedWallet,
 } from "../../hooks/useQueries";
 import {
   formatDateTime,
@@ -31,25 +34,74 @@ export function DashboardPage() {
   const { mobileSession } = useMobileSession();
   const navigate = useNavigate();
   const { data: profile, isLoading: profileLoading } = useMyProfile();
-  const { data: wallet, isLoading: walletLoading } = useMyWallet();
-  const { data: transactions, isLoading: txLoading } = useMyTransactions();
+  const { data: wallet, isLoading: walletLoading } = useUnifiedWallet();
+  const { data: icTransactions, isLoading: icTxLoading } = useMyTransactions();
+  const { data: mobileTxs, isLoading: mobileTxLoading } =
+    useMobileUserTransactions();
   const { data: announcements } = useAnnouncements();
-  const { data: incomeStats, isLoading: incomeLoading } = useMyIncomeStats();
+  const { data: icIncomeStats, isLoading: icIncomeLoading } =
+    useMyIncomeStats();
+  const { data: mobileIncomeStats, isLoading: mobileIncomeLoading } =
+    useMobileIncomeStats();
+  const { data: mobileData } = useMobileUserData();
+
+  const isMobile = !!mobileSession?.isLoggedIn;
+
+  // Choose data source based on session type
+  const transactions = isMobile
+    ? (mobileTxs ?? []).map((tx) => ({
+        transactionId: tx.txId,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        transactionType: tx.txType as any,
+        amount: BigInt(tx.amount ?? 0),
+        date: BigInt(tx.date ?? 0),
+        status: "approved" as const,
+      }))
+    : (icTransactions ?? []);
+
+  const txLoading = isMobile ? mobileTxLoading : icTxLoading;
+  const incomeLoading = isMobile ? mobileIncomeLoading : icIncomeLoading;
+
+  const incomeStats = isMobile
+    ? mobileIncomeStats
+    : (icIncomeStats as Record<string, bigint> | null);
 
   useEffect(() => {
     if (!mobileSession?.isLoggedIn) navigate({ to: "/login" });
   }, [mobileSession, navigate]);
 
-  const recentTx = (transactions ?? []).slice(0, 5);
+  const recentTx = transactions.slice(0, 5);
 
   const getIncomeStat = (key: string): bigint => {
     if (!incomeStats) return 0n;
-    const s = incomeStats as unknown as Record<string, bigint>;
-    return s[key] ?? 0n;
+    const s = incomeStats as unknown as Record<string, bigint | number>;
+    const val = s[key] ?? 0;
+    return typeof val === "bigint" ? val : BigInt(val);
   };
 
-  const displayName = mobileSession?.fullName ?? profile?.fullName ?? "Member";
+  const displayName =
+    mobileSession?.fullName ??
+    mobileData?.fullName ??
+    profile?.fullName ??
+    "Member";
   const isProfileLoading = profileLoading && !mobileSession;
+
+  // Wallet balance: show mobile data if available
+  const showWalletBalance = () => {
+    if (isMobile && mobileData) {
+      return formatRupees(BigInt(mobileData.walletBalance ?? 0));
+    }
+    if (walletLoading) return null;
+    return wallet ? formatRupees(wallet.availableBalance) : "\u20B90";
+  };
+
+  const showTotalEarnings = () => {
+    if (isMobile && mobileData) {
+      return formatRupees(BigInt(mobileData.totalEarnings ?? 0));
+    }
+    if (walletLoading) return null;
+    return wallet ? formatRupees(wallet.totalEarnings) : "\u20B90";
+  };
 
   return (
     <div className="space-y-6">
@@ -83,11 +135,8 @@ export function DashboardPage() {
         {[
           {
             label: "Available Balance",
-            value: walletLoading
-              ? null
-              : wallet
-                ? formatRupees(wallet.availableBalance)
-                : "\u20B90",
+            value: showWalletBalance(),
+            loading: walletLoading && !mobileData,
             icon: Wallet,
             gradient: "from-green-900/30 to-green-800/10",
             border: "border-green-500/20",
@@ -95,11 +144,8 @@ export function DashboardPage() {
           },
           {
             label: "Total Earnings",
-            value: walletLoading
-              ? null
-              : wallet
-                ? formatRupees(wallet.totalEarnings)
-                : "\u20B90",
+            value: showTotalEarnings(),
+            loading: walletLoading && !mobileData,
             icon: TrendingUp,
             gradient: "from-purple-900/30 to-purple-800/10",
             border: "border-purple-500/20",
@@ -108,6 +154,7 @@ export function DashboardPage() {
           {
             label: "Left Team Count",
             value: profileLoading ? null : "0",
+            loading: false,
             icon: Users,
             gradient: "from-purple-900/20 to-purple-800/5",
             border: "border-purple-500/20",
@@ -116,6 +163,7 @@ export function DashboardPage() {
           {
             label: "Right Team Count",
             value: profileLoading ? null : "0",
+            loading: false,
             icon: Users,
             gradient: "from-purple-900/20 to-purple-800/5",
             border: "border-purple-500/20",
@@ -139,7 +187,7 @@ export function DashboardPage() {
                   </span>
                   <stat.icon size={18} className={stat.color} />
                 </div>
-                {stat.value === null ? (
+                {stat.loading || stat.value === null ? (
                   <Skeleton
                     className="h-7 w-28"
                     data-ocid="dashboard.loading_state"
@@ -157,7 +205,7 @@ export function DashboardPage() {
         ))}
       </div>
 
-      {/* Income breakdown — 4 cards including Bonus */}
+      {/* Income breakdown */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
@@ -177,7 +225,7 @@ export function DashboardPage() {
           },
           {
             label: "Bonus Income",
-            key: "bonusIncome",
+            key: "rankBonus",
             icon: Gift,
           },
         ].map((item, i) => (
@@ -262,15 +310,8 @@ export function DashboardPage() {
                           {formatDateTime(tx.date)}
                         </div>
                       </div>
-                      <div
-                        className={`font-semibold text-sm ${
-                          tx.transactionType === "withdrawal"
-                            ? "text-destructive"
-                            : "text-success"
-                        }`}
-                      >
-                        {tx.transactionType === "withdrawal" ? "-" : "+"}
-                        {formatRupees(tx.amount)}
+                      <div className="font-semibold text-sm text-success">
+                        +{formatRupees(tx.amount)}
                       </div>
                     </div>
                   ))}

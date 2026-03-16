@@ -5,52 +5,85 @@ import { CheckCircle2, Loader2, Package } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useActor } from "../../hooks/useActor";
+import { useMobileSession } from "../../hooks/useMobileSession";
 import { usePackages, usePurchasePackage } from "../../hooks/useQueries";
 import { formatRupees } from "../../lib/formatters";
 
 export function PackagesPage() {
   const { data: packages, isLoading } = usePackages();
   const purchaseMutation = usePurchasePackage();
+  const { mobileSession } = useMobileSession();
+  const { actor } = useActor();
   const [purchasing, setPurchasing] = useState<bigint | null>(null);
-
-  const handlePurchase = async (packageId: bigint) => {
-    setPurchasing(packageId);
-    try {
-      await purchaseMutation.mutateAsync(packageId);
-      toast.success("Package purchased successfully!");
-    } catch (err: any) {
-      toast.error(err?.message ?? "Purchase failed");
-    } finally {
-      setPurchasing(null);
-    }
-  };
 
   const samplePackages = [
     {
       id: 1n,
-      name: "Starter Pack",
-      price: 10_000_000n,
+      name: "Starter Plan",
+      price: 499n,
       benefits:
-        "Access to binary tree, 5% binary commission, direct referral bonus",
+        "Binary Income, Direct Referral Income, 10 Level Income, Welcome Bonus",
     },
     {
       id: 2n,
-      name: "Growth Pack",
-      price: 50_000_000n,
+      name: "Silver Plan",
+      price: 999n,
       benefits:
-        "Enhanced binary commission, priority support, rank bonus eligibility",
+        "Binary Income, Direct Referral Income, 10 Level Income, Rank Bonus",
     },
     {
       id: 3n,
-      name: "Premium Pack",
-      price: 100_000_000n,
+      name: "Gold Plan",
+      price: 1999n,
       benefits:
-        "Maximum binary rates, exclusive Diamond track, all bonuses unlocked",
+        "Binary Income, Direct Referral Income, 10 Level Income, Rank Bonus, Bonus Income",
+    },
+    {
+      id: 4n,
+      name: "Diamond Plan",
+      price: 2999n,
+      benefits:
+        "Binary Income, Direct Referral Income, 10 Level Income, Rank Bonus, Bonus Income, VIP Support",
     },
   ];
 
   const displayPackages =
     packages && packages.length > 0 ? packages : samplePackages;
+
+  const handlePurchase = async (packageId: bigint) => {
+    if (!mobileSession?.isLoggedIn) {
+      toast.error("Please login to purchase a plan.");
+      return;
+    }
+    if (!actor) {
+      toast.error("Not connected to backend. Please try again.");
+      return;
+    }
+    setPurchasing(packageId);
+    try {
+      if (mobileSession.phone) {
+        // Mobile user purchase path — no IC auth required
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await (actor as any).purchaseMobileUserPlan(
+          mobileSession.phone,
+          packageId,
+        );
+        toast.success(
+          typeof result === "string" ? result : "Plan purchased successfully!",
+        );
+      } else {
+        // IC identity user purchase path
+        await purchaseMutation.mutateAsync(packageId);
+        toast.success("Package purchased successfully!");
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast.error(message || "Purchase failed. Please try again.");
+    } finally {
+      setPurchasing(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -62,19 +95,26 @@ export function PackagesPage() {
         <p className="text-muted-foreground text-sm mt-1">
           Choose a package to activate your earning potential
         </p>
+        {mobileSession?.isLoggedIn && (
+          <p className="text-xs text-green-400 mt-1">
+            Logged in as{" "}
+            <span className="font-semibold">{mobileSession.fullName}</span> (
+            {mobileSession.userId})
+          </p>
+        )}
       </div>
 
       {isLoading ? (
         <div
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
           data-ocid="packages.loading_state"
         >
-          {["a", "b", "c"].map((k) => (
+          {["a", "b", "c", "d"].map((k) => (
             <Skeleton key={k} className="h-64 w-full rounded-xl" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {displayPackages.map((pkg, i) => (
             <motion.div
               key={pkg.id.toString()}

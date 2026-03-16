@@ -1,88 +1,101 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, CheckCircle2, TrendingUp } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { motion } from "motion/react";
 
-const ranks = [
+const plans = [
   {
-    name: "Starter",
+    name: "Starter Plan",
+    price: "₹499",
     icon: "○",
     color: "text-muted-foreground",
     bg: "bg-muted/30",
     binary: "5%",
     referral: "10%",
-    requirements: ["Join and verify account", "No volume requirement"],
+    levels: "10 Levels",
+    features: [
+      "Binary Income",
+      "Direct Referral Income",
+      "10 Level Income",
+      "Welcome Bonus",
+    ],
   },
   {
-    name: "Bronze",
-    icon: "🥉",
-    color: "text-[oklch(65%_0.12_55)]",
-    bg: "bg-[oklch(35%_0.10_55/0.2)]",
-    binary: "8%",
-    referral: "12%",
-    requirements: ["500 points left leg", "500 points right leg"],
-  },
-  {
-    name: "Silver",
+    name: "Silver Plan",
+    price: "₹999",
     icon: "⭐",
     color: "text-[oklch(75%_0.02_240)]",
     bg: "bg-[oklch(55%_0.02_240/0.15)]",
-    binary: "12%",
-    referral: "14%",
-    requirements: ["2,000 points left leg", "2,000 points right leg"],
+    binary: "8%",
+    referral: "12%",
+    levels: "10 Levels",
+    features: [
+      "Binary Income",
+      "Direct Referral Income",
+      "10 Level Income",
+      "Rank Bonus",
+    ],
   },
   {
-    name: "Gold",
-    icon: "⭐",
+    name: "Gold Plan",
+    price: "₹1,999",
+    icon: "👑",
     color: "text-primary",
     bg: "bg-primary/15",
-    binary: "16%",
-    referral: "16%",
-    requirements: ["5,000 points left leg", "5,000 points right leg"],
+    binary: "10%",
+    referral: "15%",
+    levels: "10 Levels",
+    features: [
+      "Binary Income",
+      "Direct Referral Income",
+      "10 Level Income",
+      "Rank Bonus",
+      "Bonus Income",
+    ],
   },
   {
-    name: "Platinum",
-    icon: "💠",
-    color: "text-[oklch(80%_0.04_220)]",
-    bg: "bg-[oklch(70%_0.03_220/0.15)]",
-    binary: "20%",
-    referral: "18%",
-    requirements: ["15,000 points left leg", "15,000 points right leg"],
-  },
-  {
-    name: "Diamond",
+    name: "Diamond Plan",
+    price: "₹2,999",
     icon: "💎",
     color: "text-[oklch(70%_0.18_260)]",
     bg: "bg-gradient-to-br from-[oklch(60%_0.18_250/0.2)] to-[oklch(70%_0.15_290/0.2)]",
-    binary: "25%",
+    binary: "15%",
     referral: "20%",
-    requirements: ["50,000 points left leg", "50,000 points right leg"],
+    levels: "10 Levels",
+    features: [
+      "Binary Income",
+      "Direct Referral Income",
+      "10 Level Income",
+      "Rank Bonus",
+      "Bonus Income",
+      "VIP Support",
+    ],
   },
 ];
 
 const bonusTypes = [
   {
-    title: "Binary Commission",
+    title: "Binary Income",
     desc: "Earn a percentage of the weaker leg volume every pay cycle. The more balanced your tree, the more you earn.",
     icon: "🌲",
   },
   {
-    title: "Direct Referral Bonus",
-    desc: "Instantly earn a bonus when someone you personally sponsor purchases a package. Paid immediately.",
+    title: "Direct Referral Income",
+    desc: "Instantly earn a bonus when someone you personally sponsor purchases a package. Paid immediately to your wallet.",
     icon: "👥",
   },
   {
-    title: "Rank Advancement Bonus",
-    desc: "Receive a one-time celebration bonus each time you advance to a new rank.",
-    icon: "🏆",
+    title: "10 Level Income",
+    desc: "Earn income from your entire downline across 10 levels deep. Every plan unlocks all 10 levels of team income.",
+    icon: "📊",
   },
 ];
 
 export function PlanPage() {
   return (
     <div className="py-16 px-4">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -92,8 +105,8 @@ export function PlanPage() {
             Compensation <span className="gold-gradient-text">Plan</span>
           </h1>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            GUCCORA&apos;s binary compensation plan is designed to reward both
-            builders and connectors.
+            GUCCORA&apos;s binary compensation plan rewards you with binary
+            income, direct referral income, and 10 level income on every plan.
           </p>
         </motion.div>
 
@@ -116,8 +129,8 @@ export function PlanPage() {
               },
               {
                 step: "3",
-                title: "Earn Commissions",
-                desc: "Every pay cycle, the system calculates your weaker leg volume and pays you a binary commission based on your rank.",
+                title: "Earn All 3 Incomes",
+                desc: "Earn binary income, direct referral income, and 10 level income automatically as your network grows.",
               },
             ].map((item, i) => (
               <motion.div
@@ -145,10 +158,10 @@ export function PlanPage() {
           </div>
         </section>
 
-        {/* Bonus Types */}
+        {/* Income Types */}
         <section className="mb-16">
           <h2 className="font-display text-3xl font-bold mb-8 text-center">
-            Bonus Types
+            3 Income Streams on Every Plan
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {bonusTypes.map((bonus, i) => (
@@ -175,51 +188,53 @@ export function PlanPage() {
           </div>
         </section>
 
-        {/* Rank Table */}
+        {/* Membership Plans */}
         <section className="mb-16">
           <h2 className="font-display text-3xl font-bold mb-8 text-center">
-            Rank Structure
+            Membership Plans
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {ranks.map((rank, i) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {plans.map((plan, i) => (
               <motion.div
-                key={rank.name}
+                key={plan.name}
                 initial={{ opacity: 0, scale: 0.95 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.08 }}
               >
                 <Card
-                  className={`border-border h-full ${i === 5 ? "border-primary/40 card-glow" : ""}`}
+                  className={`border-border h-full ${
+                    i === 2 ? "border-primary/40 card-glow" : ""
+                  }`}
                 >
                   <CardContent className="p-5">
                     <div className="flex items-center gap-3 mb-4">
-                      <span className={`text-2xl ${rank.color}`}>
-                        {rank.icon}
+                      <span className={`text-2xl ${plan.color}`}>
+                        {plan.icon}
                       </span>
                       <div>
                         <div className="font-display font-bold">
-                          {rank.name}
+                          {plan.name}
                         </div>
                         <div
-                          className={`text-xs px-2 py-0.5 rounded-full inline-block ${rank.bg} ${rank.color} font-medium`}
+                          className={`text-xs px-2 py-0.5 rounded-full inline-block ${plan.bg} ${plan.color} font-medium`}
                         >
-                          Rank {i + 1}
+                          {plan.price}
                         </div>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="bg-muted/30 rounded-lg p-3 text-center">
-                        <div className="text-primary font-bold text-lg">
-                          {rank.binary}
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                      <div className="bg-muted/30 rounded-lg p-2 text-center">
+                        <div className="text-primary font-bold">
+                          {plan.binary}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           Binary
                         </div>
                       </div>
-                      <div className="bg-muted/30 rounded-lg p-3 text-center">
-                        <div className="text-primary font-bold text-lg">
-                          {rank.referral}
+                      <div className="bg-muted/30 rounded-lg p-2 text-center">
+                        <div className="text-primary font-bold">
+                          {plan.referral}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           Referral
@@ -227,16 +242,16 @@ export function PlanPage() {
                       </div>
                     </div>
                     <ul className="space-y-1">
-                      {rank.requirements.map((req) => (
+                      {plan.features.map((feat) => (
                         <li
-                          key={req}
+                          key={feat}
                           className="flex items-center gap-2 text-xs text-muted-foreground"
                         >
                           <CheckCircle2
                             size={12}
                             className="text-primary shrink-0"
                           />
-                          {req}
+                          {feat}
                         </li>
                       ))}
                     </ul>

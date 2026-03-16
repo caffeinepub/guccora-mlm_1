@@ -143,6 +143,15 @@ actor {
   };
   // ── END MOBILE USER TYPE ──────────────────────────────────────────────────
 
+  // ── MOBILE TRANSACTION RECORD ─────────────────────────────────────────────
+  public type MobileTxRecord = {
+    txId : Text;
+    phone : Text;
+    amount : Nat;
+    txType : Text; // "directReferral", "levelIncome", "binaryPair", "planPurchase", "rankBonus"
+    date : Time.Time;
+  };
+  // ── END MOBILE TRANSACTION RECORD ────────────────────────────────────────
 
   // ── BANK DETAILS TYPE ────────────────────────────────────────────────────
   public type BankDetails = {
@@ -192,6 +201,13 @@ actor {
   let mobileUsers = Map.empty<Text, MobileUser>();
   var nextMobileUserId : Nat = 1001;
 
+  // Mobile user plans store (phone -> planId)
+  let mobileUserPlans = Map.empty<Text, Nat>();
+
+  // Mobile transaction records (txId -> record)
+  let mobileTxRecords = Map.empty<Text, MobileTxRecord>();
+  var nextMobileTxId : Nat = 0;
+
   // Bank details store (indexed by phone number)
   let bankDetailsStore = Map.empty<Text, BankDetails>();
 
@@ -209,6 +225,9 @@ actor {
   stable var _mobileUsersStable : [(Text, MobileUser)] = [];
   stable var _bankDetailsStable : [(Text, BankDetails)] = [];
   stable var _nextMobileUserIdStable : Nat = 1001;
+  stable var _mobileUserPlansStable : [(Text, Nat)] = [];
+  stable var _mobileTxRecordsStable : [(Text, MobileTxRecord)] = [];
+  stable var _nextMobileTxIdStable : Nat = 0;
 
   // Serialize all Maps into stable arrays before the upgrade wasm swap.
   system func preupgrade() {
@@ -224,6 +243,9 @@ actor {
     _mobileUsersStable := mobileUsers.toArray();
     _nextMobileUserIdStable := nextMobileUserId;
     _bankDetailsStable := bankDetailsStore.toArray();
+    _mobileUserPlansStable := mobileUserPlans.toArray();
+    _mobileTxRecordsStable := mobileTxRecords.toArray();
+    _nextMobileTxIdStable := nextMobileTxId;
   };
 
   // Restore Maps from stable arrays after the upgrade and re-grant roles.
@@ -240,6 +262,9 @@ actor {
     for ((k, v) in _mobileUsersStable.values()) { mobileUsers.add(k, v) };
     for ((k, v) in _bankDetailsStable.values()) { bankDetailsStore.add(k, v) };
     nextMobileUserId := _nextMobileUserIdStable;
+    for ((k, v) in _mobileUserPlansStable.values()) { mobileUserPlans.add(k, v) };
+    for ((k, v) in _mobileTxRecordsStable.values()) { mobileTxRecords.add(k, v) };
+    nextMobileTxId := _nextMobileTxIdStable;
 
     // Re-grant access control roles from the restored users data.
     // The admin is whoever holds sponsorCode == "ADMIN001".
@@ -330,6 +355,50 @@ actor {
       };
     };
   };
+
+  // ── MOBILE INCOME HELPERS ─────────────────────────────────────────────────
+
+  // Credit income to a mobile user wallet by phone
+  func creditMobileUser(phone : Text, amount : Nat, txType : Text) {
+    switch (mobileUsers.get(phone)) {
+      case null {};
+      case (?u) {
+        let updated : MobileUser = {
+          userId = u.userId;
+          fullName = u.fullName;
+          phone = u.phone;
+          password = u.password;
+          sponsorCode = u.sponsorCode;
+          joinDate = u.joinDate;
+          isActive = u.isActive;
+          walletBalance = u.walletBalance + amount;
+          totalEarnings = u.totalEarnings + amount;
+        };
+        mobileUsers.add(phone, updated);
+        let txId = "MTX" # nextMobileTxId.toText();
+        nextMobileTxId += 1;
+        let record : MobileTxRecord = {
+          txId;
+          phone;
+          amount;
+          txType;
+          date = Time.now();
+        };
+        mobileTxRecords.add(txId, record);
+      };
+    };
+  };
+
+  // Find mobile user phone by their userId or sponsorCode
+  func findMobilePhoneBySponsorCode(code : Text) : ?Text {
+    for ((phone, u) in mobileUsers.toArray().values()) {
+      if (u.userId == code) { return ?phone };
+      if (u.sponsorCode == code and code != "ADMIN001") { return ?phone };
+    };
+    null;
+  };
+
+  // ── END MOBILE INCOME HELPERS ─────────────────────────────────────────────
 
 
   // ── AUTO INCOME DISTRIBUTION ─────────────────────────────────────────────
@@ -452,6 +521,101 @@ actor {
     userId;
   };
 
+  // Purchase a plan as a mobile user (no IC auth required)
+  public shared func purchaseMobileUserPlan(
+    phone : Text,
+    planId : Nat,
+  ) : async Text {
+    switch (mobileUsers.get(phone)) {
+      case null { Runtime.trap("Mobile user not found. Please register or login first.") };
+      case (?user) {
+        // Resolve plan price: try packages map first, then fallback to hardcoded prices
+        let planPrice : Nat = switch (packages.get(planId)) {
+          case (?pkg) { pkg.price };
+          case null {
+            if (planId == 1) { 499 }
+            else if (planId == 2) { 999 }
+            else if (planId == 3) { 1999 }
+            else if (planId == 4) { 2999 }
+            else { Runtime.trap("Package not found. Please contact admin.") };
+          };
+        };
+
+        // Record plan activation
+        mobileUserPlans.add(phone, planId);
+
+        // Mark user as active
+        let updatedUser : MobileUser = {
+          userId = user.userId;
+          fullName = user.fullName;
+          phone = user.phone;
+          password = user.password;
+          sponsorCode = user.sponsorCode;
+          joinDate = user.joinDate;
+          isActive = true;
+          walletBalance = user.walletBalance;
+          totalEarnings = user.totalEarnings;
+        };
+        mobileUsers.add(phone, updatedUser);
+
+        // Distribute direct referral income to sponsor (10% of plan price)
+        let directAmt = planPrice / 10;
+        if (directAmt > 0) {
+          switch (findMobilePhoneBySponsorCode(user.sponsorCode)) {
+            case (?sponsorPhone) {
+              creditMobileUser(sponsorPhone, directAmt, "directReferral");
+            };
+            case null {};
+          };
+        };
+
+        "Plan activated successfully! Your MLM account is now active.";
+      };
+    };
+  };
+
+  // Get active plan for mobile user
+  public query func getMobileUserActivePlan(phone : Text) : async ?Nat {
+    mobileUserPlans.get(phone);
+  };
+
+  // Get transaction history for mobile user
+  public query func getMobileUserTransactions(phone : Text) : async [MobileTxRecord] {
+    mobileTxRecords.values().toArray().filter(
+      func(tx : MobileTxRecord) : Bool { tx.phone == phone }
+    );
+  };
+
+  // Get income stats for mobile user
+  public query func getMobileUserIncomeStats(phone : Text) : async {
+    directReferral : Nat;
+    binaryPair : Nat;
+    levelIncome : Nat;
+    rankBonus : Nat;
+    totalIncome : Nat;
+  } {
+    let txs = mobileTxRecords.values().toArray().filter(
+      func(tx : MobileTxRecord) : Bool { tx.phone == phone }
+    );
+    var direct : Nat = 0;
+    var binary : Nat = 0;
+    var level : Nat = 0;
+    var rank : Nat = 0;
+    for (tx in txs.values()) {
+      if (tx.txType == "directReferral") { direct += tx.amount }
+      else if (tx.txType == "binaryPair") { binary += tx.amount }
+      else if (tx.txType == "levelIncome") { level += tx.amount }
+      else if (tx.txType == "rankBonus") { rank += tx.amount };
+    };
+    {
+      directReferral = direct;
+      binaryPair = binary;
+      levelIncome = level;
+      rankBonus = rank;
+      totalIncome = direct + binary + level + rank;
+    };
+  };
+
   // Look up a mobile user profile by phone (public — no sensitive data exposed)
   public query func getMobileUserByPhone(phone : Text) : async ?{
     userId : Text;
@@ -525,7 +689,7 @@ actor {
   // User Profile Functions (Required by Frontend)
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view profiles");
+      return null; // Silent return for anonymous/mobile users
     };
     switch (users.get(caller)) {
       case null { null };
@@ -725,7 +889,7 @@ actor {
   // Get user info - Users can view any user's basic info
   public query ({ caller }) func getUser(userId : Principal) : async ?User {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view user information");
+      return null; // Silent return for anonymous/mobile users
     };
     users.get(userId);
   };
@@ -878,7 +1042,7 @@ actor {
 
   public shared ({ caller }) func purchasePackage(packageId : Nat) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can purchase packages");
+      Runtime.trap("Unauthorized: Only registered users can purchase packages. Please register or login.");
     };
     if (not users.containsKey(caller)) {
       Runtime.trap("User not registered");
@@ -923,7 +1087,7 @@ actor {
 
   public query ({ caller }) func getMyWallet() : async ?Wallet {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view wallets");
+      return null; // Silent return for anonymous/mobile users
     };
     wallets.get(caller);
   };
@@ -939,7 +1103,7 @@ actor {
 
   public query ({ caller }) func getMyTransactions() : async [Transaction] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view transactions");
+      return []; // Silent return for anonymous/mobile users
     };
     transactions.values().toArray().filter(
       func(tx) { tx.userId == caller }
@@ -1042,7 +1206,14 @@ actor {
 
   public query ({ caller }) func getMyIncomeStats() : async IncomeStats {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view income stats");
+      // Return zeroes for anonymous/mobile users
+      return {
+        directReferral = 0;
+        binaryPair = 0;
+        levelIncome = 0;
+        rankBonus = 0;
+        totalIncome = 0;
+      };
     };
     
     let userTransactions = transactions.values().toArray().filter(
@@ -1075,7 +1246,7 @@ actor {
 
   public query ({ caller }) func getMyWithdrawalRequests() : async [WithdrawalRequest] {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only users can view withdrawal requests");
+      return []; // Silent return for anonymous/mobile users
     };
     withdrawalRequests.values().toArray().filter(
       func(req) { req.userId == caller }

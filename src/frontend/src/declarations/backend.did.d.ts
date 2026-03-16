@@ -172,6 +172,7 @@ export interface _SERVICE {
   'processWithdrawalRequest' : ActorMethod<[string, boolean], undefined>,
   'purchasePackage' : ActorMethod<[bigint], undefined>,
   'registerMobileUser' : ActorMethod<[string, string, string, string], string>,
+  'purchaseMobileUserPlan' : ActorMethod<[string, bigint], string>,
   'registerUser' : ActorMethod<
     [string, string, string, string, Principal, Position, [] | [string]],
     Principal

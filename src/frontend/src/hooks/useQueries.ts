@@ -2,6 +2,7 @@ import type { Principal } from "@icp-sdk/core/principal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Rank, TransactionType, UserProfile, UserRole } from "../backend";
 import { useActor } from "./useActor";
+import { useMobileSession } from "./useMobileSession";
 
 export function useMyProfile() {
   const { actor, isFetching } = useActor();
@@ -24,6 +25,87 @@ export function useMyWallet() {
       return actor.getMyWallet();
     },
     enabled: !!actor && !isFetching,
+  });
+}
+
+// Mobile user data hook — fetches wallet/profile by phone for mobile sessions
+export function useMobileUserData() {
+  const { mobileSession } = useMobileSession();
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["mobileUserData", mobileSession?.phone],
+    queryFn: async () => {
+      if (!actor || !mobileSession?.phone) return null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (actor as any).getMobileUserByPhone(
+        mobileSession.phone,
+      );
+      if (!result) return null;
+      if (Array.isArray(result)) return result[0] ?? null;
+      return result;
+    },
+    enabled: !!actor && !isFetching && !!mobileSession?.phone,
+    refetchInterval: 10000, // Refresh every 10s to show updated balance
+  });
+}
+
+// Unified wallet — returns mobile wallet if session exists, else IC wallet
+export function useUnifiedWallet() {
+  const { mobileSession } = useMobileSession();
+  const icWallet = useMyWallet();
+  const mobileData = useMobileUserData();
+
+  if (mobileSession?.isLoggedIn) {
+    const md = mobileData.data;
+    return {
+      data: md
+        ? {
+            availableBalance: BigInt(md.walletBalance ?? 0),
+            totalEarnings: BigInt(md.totalEarnings ?? 0),
+            pendingBalance: 0n,
+            withdrawnAmount: 0n,
+            userId: null as unknown as Principal,
+          }
+        : null,
+      isLoading: mobileData.isLoading,
+    };
+  }
+  return icWallet;
+}
+
+// Mobile income stats hook
+export function useMobileIncomeStats() {
+  const { mobileSession } = useMobileSession();
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["mobileIncomeStats", mobileSession?.phone],
+    queryFn: async () => {
+      if (!actor || !mobileSession?.phone) return null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (actor as any).getMobileUserIncomeStats(
+        mobileSession.phone,
+      );
+      return result;
+    },
+    enabled: !!actor && !isFetching && !!mobileSession?.phone,
+  });
+}
+
+// Mobile transactions hook
+export function useMobileUserTransactions() {
+  const { mobileSession } = useMobileSession();
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["mobileUserTransactions", mobileSession?.phone],
+    queryFn: async () => {
+      if (!actor || !mobileSession?.phone) return [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (actor as any).getMobileUserTransactions(
+        mobileSession.phone,
+      );
+      return Array.isArray(result) ? result : [];
+    },
+    enabled: !!actor && !isFetching && !!mobileSession?.phone,
   });
 }
 

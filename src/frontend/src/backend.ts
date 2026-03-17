@@ -228,6 +228,16 @@ export interface backendInterface {
     purchasePackage(packageId: bigint): Promise<void>;
     registerUser(username: string, fullName: string, email: string, phone: string, sponsorId: Principal, position: Position, sponsorCode: string | null): Promise<Principal>;
     registerMobileUser(fullName: string, phone: string, password: string, sponsorCode: string): Promise<string>;
+    purchaseMobileUserPlan(phone: string, packageId: bigint): Promise<string>;
+    upgradeMobileUserPlan(phone: string, newPlanId: bigint): Promise<string>;
+    getMobileUserActivePlan(phone: string): Promise<[bigint] | []>;
+    submitRechargeRequest(phone: string, amount: bigint, method: 'upi' | 'bank', upiId: string, utrNumber: string, bankName: string): Promise<string>;
+    getRechargeRequests(): Promise<Array<RechargeRequest>>;
+    getMyRechargeRequests(phone: string): Promise<Array<RechargeRequest>>;
+    approveRechargeRequest(requestId: string, adminNote: string): Promise<void>;
+    rejectRechargeRequest(requestId: string, adminNote: string): Promise<void>;
+    adminCreditWallet(phone: string, amount: bigint, note: string): Promise<void>;
+
     requestWithdrawal(amount: bigint, paymentMethod: string, paymentDetails: string): Promise<string>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     setUserActiveStatus(userId: Principal, isActive: boolean): Promise<void>;
@@ -702,6 +712,48 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async purchaseMobileUserPlan(arg0: string, arg1: bigint): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.purchaseMobileUserPlan(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.purchaseMobileUserPlan(arg0, arg1);
+            return result;
+        }
+    }
+    async upgradeMobileUserPlan(arg0: string, arg1: bigint): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.upgradeMobileUserPlan(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.upgradeMobileUserPlan(arg0, arg1);
+            return result;
+        }
+    }
+    async getMobileUserActivePlan(arg0: string): Promise<[bigint] | []> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getMobileUserActivePlan(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getMobileUserActivePlan(arg0);
+            return result;
+        }
+    }
     async requestWithdrawal(arg0: bigint, arg1: string, arg2: string): Promise<string> {
         if (this.processError) {
             try {
@@ -758,6 +810,73 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+
+
+    async submitRechargeRequest(phone: string, amount: bigint, method: 'upi' | 'bank', upiId: string, utrNumber: string, bankName: string): Promise<string> {
+        const methodVariant = method === 'upi' ? { upi: null } : { bank: null };
+        try {
+            if (this.processError) {
+                try { return await this.actor.submitRechargeRequest(phone, amount, methodVariant, upiId, utrNumber, bankName); }
+                catch(e) { this.processError(e); }
+            }
+            return await this.actor.submitRechargeRequest(phone, amount, methodVariant, upiId, utrNumber, bankName);
+        } catch(e) { throw e; }
+    }
+
+    async getRechargeRequests(): Promise<Array<RechargeRequest>> {
+        try {
+            const results = await this.actor.getRechargeRequests();
+            return results.map((r: any) => ({
+                ...r,
+                method: 'upi' in r.method ? RechargeMethod.upi : RechargeMethod.bank,
+                status: 'pending' in r.status ? RechargeStatus.pending : 'approved' in r.status ? RechargeStatus.approved : RechargeStatus.rejected,
+                processedDate: r.processedDate.length > 0 ? r.processedDate[0] : null,
+            }));
+        } catch(e) { throw e; }
+    }
+
+    async getMyRechargeRequests(phone: string): Promise<Array<RechargeRequest>> {
+        try {
+            const results = await this.actor.getMyRechargeRequests(phone);
+            return results.map((r: any) => ({
+                ...r,
+                method: 'upi' in r.method ? RechargeMethod.upi : RechargeMethod.bank,
+                status: 'pending' in r.status ? RechargeStatus.pending : 'approved' in r.status ? RechargeStatus.approved : RechargeStatus.rejected,
+                processedDate: r.processedDate.length > 0 ? r.processedDate[0] : null,
+            }));
+        } catch(e) { throw e; }
+    }
+
+    async approveRechargeRequest(requestId: string, adminNote: string): Promise<void> {
+        try {
+            if (this.processError) {
+                try { return await this.actor.approveRechargeRequest(requestId, adminNote); }
+                catch(e) { this.processError(e); }
+            }
+            return await this.actor.approveRechargeRequest(requestId, adminNote);
+        } catch(e) { throw e; }
+    }
+
+    async rejectRechargeRequest(requestId: string, adminNote: string): Promise<void> {
+        try {
+            if (this.processError) {
+                try { return await this.actor.rejectRechargeRequest(requestId, adminNote); }
+                catch(e) { this.processError(e); }
+            }
+            return await this.actor.rejectRechargeRequest(requestId, adminNote);
+        } catch(e) { throw e; }
+    }
+
+    async adminCreditWallet(phone: string, amount: bigint, note: string): Promise<void> {
+        try {
+            if (this.processError) {
+                try { return await this.actor.adminCreditWallet(phone, amount, note); }
+                catch(e) { this.processError(e); }
+            }
+            return await this.actor.adminCreditWallet(phone, amount, note);
+        } catch(e) { throw e; }
+    }
+
 }
 function from_candid_Position_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Position): Position {
     return from_candid_variant_n13(_uploadFile, _downloadFile, value);
@@ -1130,6 +1249,22 @@ function to_candid_variant_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8
     } : value == UserRole.guest ? {
         guest: null
     } : value;
+}
+
+export enum RechargeMethod { upi = "upi", bank = "bank" }
+export enum RechargeStatus { pending = "pending", approved = "approved", rejected = "rejected" }
+export interface RechargeRequest {
+    requestId: string;
+    phone: string;
+    amount: bigint;
+    method: RechargeMethod;
+    upiId: string;
+    utrNumber: string;
+    bankName: string;
+    status: RechargeStatus;
+    requestDate: bigint;
+    processedDate: bigint | null;
+    adminNote: string;
 }
 export interface CreateActorOptions {
     agent?: Agent;

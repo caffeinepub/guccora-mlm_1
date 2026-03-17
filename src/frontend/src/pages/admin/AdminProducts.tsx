@@ -65,12 +65,65 @@ const CATEGORIES = [
   { value: "other", label: "Other" },
 ];
 
+const DEMO_PRODUCTS: Product[] = [
+  {
+    id: "demo-1",
+    name: "Guccora Premium Bag",
+    description:
+      "Handcrafted luxury bag with premium leather finish. A signature GUCCORA piece that combines elegance with practicality for the modern entrepreneur.",
+    price: 1999,
+    imageUrl: "/assets/generated/product-bag.dim_400x400.jpg",
+    category: "lifestyle",
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "demo-2",
+    name: "Guccora Gold Membership Kit",
+    description:
+      "Exclusive gold-tier membership welcome kit with premium branding materials, training manuals, and network access credentials for serious networkers.",
+    price: 2999,
+    imageUrl: "/assets/generated/product-membership-kit.dim_400x400.jpg",
+    category: "lifestyle",
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "demo-3",
+    name: "Guccora Training Course",
+    description:
+      "Comprehensive MLM success training program covering binary network building, income strategies, leadership skills, and digital marketing techniques.",
+    price: 999,
+    imageUrl: "/assets/generated/product-training.dim_400x400.jpg",
+    category: "other",
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "demo-4",
+    name: "Guccora Business Starter Kit",
+    description:
+      "Everything you need to launch your GUCCORA business — business cards, brochures, presentation materials, and digital tools to grow your downline fast.",
+    price: 499,
+    imageUrl: "/assets/generated/product-starter-kit.dim_400x400.jpg",
+    category: "other",
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+];
+
 function loadProducts(): Product[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.length > 0) return parsed;
+    }
+    // Seed demo products on first load
+    saveProducts(DEMO_PRODUCTS);
+    return DEMO_PRODUCTS;
   } catch {
-    return [];
+    return DEMO_PRODUCTS;
   }
 }
 

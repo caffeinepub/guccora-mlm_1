@@ -122,6 +122,21 @@ export interface WithdrawalRequest {
   'amount' : bigint,
   'requestDate' : Time,
 }
+export type RechargeMethod = { 'upi': null } | { 'bank': null };
+export type RechargeStatus = { 'pending': null } | { 'approved': null } | { 'rejected': null };
+export interface RechargeRequest {
+  'requestId': string;
+  'phone': string;
+  'amount': bigint;
+  'method': RechargeMethod;
+  'upiId': string;
+  'utrNumber': string;
+  'bankName': string;
+  'status': RechargeStatus;
+  'requestDate': Time;
+  'processedDate': [] | [Time];
+  'adminNote': string;
+}
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'addAnnouncement' : ActorMethod<[string, string], undefined>,
@@ -145,6 +160,7 @@ export interface _SERVICE {
   'getAllAnnouncements' : ActorMethod<[], Array<Announcement>>,
   'getAllMobileUsers' : ActorMethod<[], Array<MobileUser>>,
   'getAllPackages' : ActorMethod<[], Array<Package>>,
+  'resetDefaultPackages' : ActorMethod<[], undefined>,
   'getAllUsers' : ActorMethod<[], Array<User>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,

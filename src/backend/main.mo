@@ -9,6 +9,7 @@ import Text "mo:core/Text";
 import Time "mo:core/Time";
 import Iter "mo:core/Iter";
 import Int "mo:core/Int";
+import Nat "mo:core/Nat";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
@@ -165,6 +166,25 @@ actor {
   };
   // ── END BANK DETAILS TYPE ────────────────────────────────────────────────
 
+  // ── RECHARGE REQUEST TYPE ─────────────────────────────────────────────────
+  public type RechargeMethod = { #upi; #bank };
+  public type RechargeStatus = { #pending; #approved; #rejected };
+  public type RechargeRequest = {
+    requestId : Text;
+    phone : Text;
+    amount : Nat;
+    method : RechargeMethod;
+    upiId : Text;       // filled for UPI
+    utrNumber : Text;   // UTR / transaction reference
+    bankName : Text;    // filled for bank transfer
+    status : RechargeStatus;
+    requestDate : Time.Time;
+    processedDate : ?Time.Time;
+    adminNote : Text;
+  };
+  // ── END RECHARGE REQUEST TYPE ─────────────────────────────────────────────
+
+
   module User {
     public func compare(a : User, b : User) : Order.Order {
       principalToText(a.userId).compare(principalToText(b.userId));
@@ -211,6 +231,10 @@ actor {
   // Bank details store (indexed by phone number)
   let bankDetailsStore = Map.empty<Text, BankDetails>();
 
+  // Recharge requests store
+  let rechargeRequests = Map.empty<Text, RechargeRequest>();
+  var nextRechargeId : Nat = 0;
+
   // ── STABLE STORAGE (persists data across canister upgrades) ──────────────
   stable var _usersStable : [(Principal, User)] = [];
   stable var _walletsStable : [(Principal, Wallet)] = [];
@@ -228,6 +252,8 @@ actor {
   stable var _mobileUserPlansStable : [(Text, Nat)] = [];
   stable var _mobileTxRecordsStable : [(Text, MobileTxRecord)] = [];
   stable var _nextMobileTxIdStable : Nat = 0;
+  stable var _rechargeRequestsStable : [(Text, RechargeRequest)] = [];
+  stable var _nextRechargeIdStable : Nat = 0;
 
   // Serialize all Maps into stable arrays before the upgrade wasm swap.
   system func preupgrade() {
@@ -246,6 +272,8 @@ actor {
     _mobileUserPlansStable := mobileUserPlans.toArray();
     _mobileTxRecordsStable := mobileTxRecords.toArray();
     _nextMobileTxIdStable := nextMobileTxId;
+    _rechargeRequestsStable := rechargeRequests.toArray();
+    _nextRechargeIdStable := nextRechargeId;
   };
 
   // Restore Maps from stable arrays after the upgrade and re-grant roles.
@@ -265,6 +293,19 @@ actor {
     for ((k, v) in _mobileUserPlansStable.values()) { mobileUserPlans.add(k, v) };
     for ((k, v) in _mobileTxRecordsStable.values()) { mobileTxRecords.add(k, v) };
     nextMobileTxId := _nextMobileTxIdStable;
+    for ((k, v) in _rechargeRequestsStable.values()) { rechargeRequests.add(k, v) };
+    nextRechargeId := _nextRechargeIdStable;
+
+    // Seed default packages with correct prices if none exist or reset to correct prices
+    let defaultPkgs : [(Nat, Text, Nat, Text)] = [
+      (1, "Starter Plan", 499, "Binary Income, Direct Referral Income, 10 Level Income, Welcome Bonus"),
+      (2, "Silver Plan", 999, "Binary Income, Direct Referral Income, 10 Level Income, Rank Bonus"),
+      (3, "Gold Plan", 1999, "Binary Income, Direct Referral Income, 10 Level Income, Rank Bonus, Bonus Income"),
+      (4, "Diamond Plan", 2999, "Binary Income, Direct Referral Income, 10 Level Income, Rank Bonus, Bonus Income, VIP Support"),
+    ];
+    for ((id, name, price, benefits) in defaultPkgs.values()) {
+      packages.add(id, { id = id; name = name; price = price; benefits = benefits });
+    };
 
     // Re-grant access control roles from the restored users data.
     // The admin is whoever holds sponsorCode == "ADMIN001".
@@ -578,6 +619,79 @@ actor {
   public query func getMobileUserActivePlan(phone : Text) : async ?Nat {
     mobileUserPlans.get(phone);
   };
+  // Upgrade a mobile user's plan (deducts only the price difference)
+  public shared func upgradeMobileUserPlan(
+    phone : Text,
+    newPlanId : Nat,
+  ) : async Text {
+    switch (mobileUsers.get(phone)) {
+      case null { Runtime.trap("Mobile user not found. Please register or login first.") };
+      case (?user) {
+        let planPrice : Nat -> Nat = func(id : Nat) : Nat {
+          switch (packages.get(id)) {
+            case (?pkg) { pkg.price };
+            case null {
+              if (id == 1) { 499 }
+              else if (id == 2) { 999 }
+              else if (id == 3) { 1999 }
+              else if (id == 4) { 2999 }
+              else { Runtime.trap("Package not found.") };
+            };
+          };
+        };
+
+        let currentPlanId : Nat = switch (mobileUserPlans.get(phone)) {
+          case (?p) { p };
+          case null { 0 };
+        };
+
+        let newPrice = planPrice(newPlanId);
+        let currentPrice : Nat = if (currentPlanId == 0) { 0 } else { planPrice(currentPlanId) };
+
+        if (newPlanId <= currentPlanId) {
+          Runtime.trap("You can only upgrade to a higher plan.");
+        };
+
+        let upgradeFee : Nat = if (newPrice > currentPrice) { newPrice - currentPrice } else { 0 };
+
+        if (user.walletBalance < upgradeFee) {
+          Runtime.trap("Insufficient wallet balance. Please recharge your wallet.");
+        };
+
+        // Deduct upgrade fee from wallet
+        let updatedUser : MobileUser = {
+          userId = user.userId;
+          fullName = user.fullName;
+          phone = user.phone;
+          password = user.password;
+          sponsorCode = user.sponsorCode;
+          joinDate = user.joinDate;
+          isActive = true;
+          walletBalance = user.walletBalance - upgradeFee;
+          totalEarnings = user.totalEarnings;
+        };
+        mobileUsers.add(phone, updatedUser);
+
+        // Record upgrade transaction
+        let txId = "MTX" # nextMobileTxId.toText();
+        nextMobileTxId += 1;
+        let record : MobileTxRecord = {
+          txId;
+          phone;
+          amount = upgradeFee;
+          txType = "planUpgrade";
+          date = Time.now();
+        };
+        mobileTxRecords.add(txId, record);
+
+        // Update plan
+        mobileUserPlans.add(phone, newPlanId);
+
+        "Plan upgraded successfully!";
+      };
+    };
+  };
+
 
   // Get transaction history for mobile user
   public query func getMobileUserTransactions(phone : Text) : async [MobileTxRecord] {
@@ -1040,6 +1154,21 @@ actor {
     packageId;
   };
 
+  public shared ({ caller }) func resetDefaultPackages() : async () {
+    if (not isAdminCaller(caller)) {
+      Runtime.trap("Unauthorized: Only admins can reset packages");
+    };
+    let defaultPkgs : [(Nat, Text, Nat, Text)] = [
+      (1, "Starter Plan", 499, "Binary Income, Direct Referral Income, 10 Level Income, Welcome Bonus"),
+      (2, "Silver Plan", 999, "Binary Income, Direct Referral Income, 10 Level Income, Rank Bonus"),
+      (3, "Gold Plan", 1999, "Binary Income, Direct Referral Income, 10 Level Income, Rank Bonus, Bonus Income"),
+      (4, "Diamond Plan", 2999, "Binary Income, Direct Referral Income, 10 Level Income, Rank Bonus, Bonus Income, VIP Support"),
+    ];
+    for ((id, name, price, benefits) in defaultPkgs.values()) {
+      packages.add(id, { id = id; name = name; price = price; benefits = benefits });
+    };
+  };
+
   public shared ({ caller }) func purchasePackage(packageId : Nat) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only registered users can purchase packages. Please register or login.");
@@ -1459,5 +1588,163 @@ actor {
   };
   // ── END BANK DETAILS FUNCTIONS ───────────────────────────────────────────
 
+  // ── RECHARGE REQUEST FUNCTIONS ───────────────────────────────────────────
+
+  public shared func submitRechargeRequest(
+    phone : Text,
+    amount : Nat,
+    method : RechargeMethod,
+    upiId : Text,
+    utrNumber : Text,
+    bankName : Text,
+  ) : async Text {
+    if (amount == 0) Runtime.trap("Amount must be greater than 0");
+    let rid = "RCH" # Time.now().toText() # nextRechargeId.toText();
+    nextRechargeId += 1;
+    let req : RechargeRequest = {
+      requestId = rid;
+      phone;
+      amount;
+      method;
+      upiId;
+      utrNumber;
+      bankName;
+      status = #pending;
+      requestDate = Time.now();
+      processedDate = null;
+      adminNote = "";
+    };
+    rechargeRequests.add(rid, req);
+    rid
+  };
+
+  public query ({ caller }) func getRechargeRequests() : async [RechargeRequest] {
+    if (not isAdminCaller(caller)) {
+      Runtime.trap("Unauthorized: Only admins can view recharge requests");
+    };
+    let arr = rechargeRequests.toArray();
+    arr.map(func((_, v) : (Text, RechargeRequest)) : RechargeRequest { v })
+  };
+
+  public query func getMyRechargeRequests(phone : Text) : async [RechargeRequest] {
+    let arr = rechargeRequests.toArray();
+    let filtered = arr.filter(func((_, v) : (Text, RechargeRequest)) : Bool { v.phone == phone });
+    filtered.map(func((_, v) : (Text, RechargeRequest)) : RechargeRequest { v })
+  };
+
+  public shared ({ caller }) func approveRechargeRequest(requestId : Text, adminNote : Text) : async () {
+    if (not isAdminCaller(caller)) {
+      Runtime.trap("Unauthorized: Only admins can approve recharge requests");
+    };
+    switch (rechargeRequests.get(requestId)) {
+      case null { Runtime.trap("Recharge request not found") };
+      case (?req) {
+        let updated : RechargeRequest = {
+          requestId = req.requestId;
+          phone = req.phone;
+          amount = req.amount;
+          method = req.method;
+          upiId = req.upiId;
+          utrNumber = req.utrNumber;
+          bankName = req.bankName;
+          status = #approved;
+          requestDate = req.requestDate;
+          processedDate = ?Time.now();
+          adminNote;
+        };
+        rechargeRequests.add(requestId, updated);
+        // Credit mobile user wallet
+        switch (mobileUsers.get(req.phone)) {
+          case null {};
+          case (?user) {
+            let updatedUser : MobileUser = {
+              userId = user.userId;
+              fullName = user.fullName;
+              phone = user.phone;
+              password = user.password;
+              sponsorCode = user.sponsorCode;
+              joinDate = user.joinDate;
+              isActive = user.isActive;
+              walletBalance = user.walletBalance + req.amount;
+              totalEarnings = user.totalEarnings;
+            };
+            mobileUsers.add(req.phone, updatedUser);
+            // Save transaction record
+            let txId = "TX" # Time.now().toText() # nextMobileTxId.toText();
+            nextMobileTxId += 1;
+            let txRecord : MobileTxRecord = {
+              txId;
+              phone = req.phone;
+              amount = req.amount;
+              txType = "walletRecharge";
+              date = Time.now();
+            };
+            mobileTxRecords.add(txId, txRecord);
+          };
+        };
+      };
+    };
+  };
+
+  public shared ({ caller }) func rejectRechargeRequest(requestId : Text, adminNote : Text) : async () {
+    if (not isAdminCaller(caller)) {
+      Runtime.trap("Unauthorized: Only admins can reject recharge requests");
+    };
+    switch (rechargeRequests.get(requestId)) {
+      case null { Runtime.trap("Recharge request not found") };
+      case (?req) {
+        let updated : RechargeRequest = {
+          requestId = req.requestId;
+          phone = req.phone;
+          amount = req.amount;
+          method = req.method;
+          upiId = req.upiId;
+          utrNumber = req.utrNumber;
+          bankName = req.bankName;
+          status = #rejected;
+          requestDate = req.requestDate;
+          processedDate = ?Time.now();
+          adminNote;
+        };
+        rechargeRequests.add(requestId, updated);
+      };
+    };
+  };
+
+  public shared ({ caller }) func adminCreditWallet(phone : Text, amount : Nat, _note : Text) : async () {
+    if (not isAdminCaller(caller)) {
+      Runtime.trap("Unauthorized: Only admins can manually credit wallets");
+    };
+    if (amount == 0) Runtime.trap("Amount must be greater than 0");
+    switch (mobileUsers.get(phone)) {
+      case null { Runtime.trap("User not found") };
+      case (?user) {
+        let updatedUser : MobileUser = {
+          userId = user.userId;
+          fullName = user.fullName;
+          phone = user.phone;
+          password = user.password;
+          sponsorCode = user.sponsorCode;
+          joinDate = user.joinDate;
+          isActive = user.isActive;
+          walletBalance = user.walletBalance + amount;
+          totalEarnings = user.totalEarnings;
+        };
+        mobileUsers.add(phone, updatedUser);
+        let txId = "TX" # Time.now().toText() # nextMobileTxId.toText();
+        nextMobileTxId += 1;
+        let txRecord : MobileTxRecord = {
+          txId;
+          phone;
+          amount;
+          txType = "adminCredit";
+          date = Time.now();
+        };
+        mobileTxRecords.add(txId, txRecord);
+      };
+    };
+  };
+
+  // ── END RECHARGE REQUEST FUNCTIONS ───────────────────────────────────────
 
 };

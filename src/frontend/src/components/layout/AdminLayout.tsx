@@ -13,6 +13,7 @@ import {
   Package,
   ShoppingBag,
   Users,
+  Wallet,
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -21,6 +22,7 @@ const adminNavItems = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard },
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/withdrawals", label: "Withdrawals", icon: CreditCard },
+  { to: "/admin/recharge", label: "Recharge Requests", icon: Wallet },
   { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
   { to: "/admin/packages", label: "Packages", icon: Package },
   { to: "/admin/products", label: "Products", icon: ShoppingBag },

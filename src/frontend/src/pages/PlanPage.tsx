@@ -14,6 +14,12 @@ const plans = [
     binary: "5%",
     referral: "10%",
     levels: "10 Levels",
+    cardClass: "plan-card-starter",
+    priceGradient:
+      "linear-gradient(135deg, oklch(72.6% 0.116 73 / 0.18), oklch(72.6% 0.116 73 / 0.06))",
+    priceBorder: "1px solid oklch(72.6% 0.116 73 / 0.35)",
+    priceColor: "oklch(72.6% 0.116 73)",
+    accentColor: "oklch(72.6% 0.116 73)",
     features: [
       "Binary Income",
       "Direct Referral Income",
@@ -30,6 +36,12 @@ const plans = [
     binary: "8%",
     referral: "12%",
     levels: "10 Levels",
+    cardClass: "plan-card-silver",
+    priceGradient:
+      "linear-gradient(135deg, oklch(65% 0.02 240 / 0.25), oklch(55% 0.02 250 / 0.15))",
+    priceBorder: "1px solid oklch(75% 0.02 240 / 0.45)",
+    priceColor: "oklch(84% 0.02 240)",
+    accentColor: "oklch(75% 0.02 240)",
     features: [
       "Binary Income",
       "Direct Referral Income",
@@ -46,6 +58,12 @@ const plans = [
     binary: "10%",
     referral: "15%",
     levels: "10 Levels",
+    cardClass: "plan-card-gold",
+    priceGradient:
+      "linear-gradient(135deg, oklch(72.6% 0.116 73), oklch(80.4% 0.108 77))",
+    priceBorder: "none",
+    priceColor: "oklch(10% 0.08 298)",
+    accentColor: "oklch(72.6% 0.116 73)",
     features: [
       "Binary Income",
       "Direct Referral Income",
@@ -63,6 +81,12 @@ const plans = [
     binary: "15%",
     referral: "20%",
     levels: "10 Levels",
+    cardClass: "plan-card-diamond",
+    priceGradient:
+      "linear-gradient(135deg, oklch(40% 0.15 260 / 0.5), oklch(50% 0.18 280 / 0.4))",
+    priceBorder: "1px solid oklch(70% 0.15 260 / 0.45)",
+    priceColor: "oklch(78% 0.12 260)",
+    accentColor: "oklch(70% 0.15 260)",
     features: [
       "Binary Income",
       "Direct Referral Income",
@@ -193,7 +217,7 @@ export function PlanPage() {
           <h2 className="font-display text-3xl font-bold mb-8 text-center">
             Membership Plans
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {plans.map((plan, i) => (
               <motion.div
                 key={plan.name}
@@ -201,39 +225,76 @@ export function PlanPage() {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.08 }}
+                whileHover={{ y: -4 }}
               >
-                <Card
-                  className={`border-border h-full ${
-                    i === 2 ? "border-primary/40 card-glow" : ""
-                  }`}
+                <div
+                  className={`${plan.cardClass} rounded-2xl h-full flex flex-col transition-all duration-300 relative overflow-hidden`}
                 >
-                  <CardContent className="p-5">
+                  {i === 2 && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                      <span
+                        className="text-xs font-bold px-4 py-1 rounded-full tracking-widest uppercase whitespace-nowrap"
+                        style={{
+                          background:
+                            "linear-gradient(135deg, oklch(72.6% 0.116 73), oklch(80.4% 0.108 77))",
+                          color: "oklch(10% 0.08 298)",
+                          boxShadow: "0 2px 12px oklch(72.6% 0.116 73 / 0.5)",
+                        }}
+                      >
+                        MOST POPULAR
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="p-5 pt-7">
+                    {/* Header row */}
                     <div className="flex items-center gap-3 mb-4">
                       <span className={`text-2xl ${plan.color}`}>
                         {plan.icon}
                       </span>
-                      <div>
-                        <div className="font-display font-bold">
-                          {plan.name}
-                        </div>
-                        <div
-                          className={`text-xs px-2 py-0.5 rounded-full inline-block ${plan.bg} ${plan.color} font-medium`}
-                        >
-                          {plan.price}
-                        </div>
-                      </div>
+                      <div className="font-display font-bold">{plan.name}</div>
                     </div>
+
+                    {/* Price pill */}
+                    <div
+                      className="inline-flex items-center px-3 py-1 rounded-full font-display font-bold text-sm mb-4"
+                      style={{
+                        background: plan.priceGradient,
+                        border: plan.priceBorder,
+                        color: plan.priceColor,
+                      }}
+                    >
+                      {plan.price}
+                    </div>
+
+                    {/* Stats */}
                     <div className="grid grid-cols-2 gap-2 mb-4">
-                      <div className="bg-muted/30 rounded-lg p-2 text-center">
-                        <div className="text-primary font-bold">
+                      <div
+                        className="rounded-lg p-2 text-center"
+                        style={{
+                          background: `${plan.accentColor.replace(")", " / 0.1)").replace("oklch(", "oklch(")}`,
+                        }}
+                      >
+                        <div
+                          className="font-bold text-sm"
+                          style={{ color: plan.accentColor }}
+                        >
                           {plan.binary}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           Binary
                         </div>
                       </div>
-                      <div className="bg-muted/30 rounded-lg p-2 text-center">
-                        <div className="text-primary font-bold">
+                      <div
+                        className="rounded-lg p-2 text-center"
+                        style={{
+                          background: `${plan.accentColor.replace(")", " / 0.1)").replace("oklch(", "oklch(")}`,
+                        }}
+                      >
+                        <div
+                          className="font-bold text-sm"
+                          style={{ color: plan.accentColor }}
+                        >
                           {plan.referral}
                         </div>
                         <div className="text-xs text-muted-foreground">
@@ -241,6 +302,8 @@ export function PlanPage() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Features */}
                     <ul className="space-y-1">
                       {plan.features.map((feat) => (
                         <li
@@ -249,14 +312,15 @@ export function PlanPage() {
                         >
                           <CheckCircle2
                             size={12}
-                            className="text-primary shrink-0"
+                            className="shrink-0"
+                            style={{ color: plan.accentColor }}
                           />
                           {feat}
                         </li>
                       ))}
                     </ul>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </motion.div>
             ))}
           </div>
@@ -266,7 +330,8 @@ export function PlanPage() {
           <Link to="/register">
             <Button
               size="lg"
-              className="gold-gradient text-primary-foreground font-bold px-10 rounded-full"
+              className="btn-shimmer text-primary-foreground font-bold px-12 py-4 rounded-full text-base transition-all duration-200 hover:scale-105"
+              style={{ color: "oklch(10% 0.08 298)" }}
               data-ocid="plan.primary_button"
             >
               Join Now <ArrowRight size={18} className="ml-2" />

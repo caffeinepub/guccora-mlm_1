@@ -144,6 +144,7 @@ export interface backendInterface {
     loginAsAdmin(password: string): Promise<boolean>;
     getAllAnnouncements(): Promise<Array<Announcement>>;
     getAllPackages(): Promise<Array<Package>>;
+    resetDefaultPackages(): Promise<void>;
     getAllUsers(): Promise<Array<User>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;

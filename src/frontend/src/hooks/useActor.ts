@@ -32,6 +32,11 @@ export function useActor() {
     },
     // Only refetch when identity changes
     staleTime: Number.POSITIVE_INFINITY,
+    // Retry on failure with exponential backoff
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
+    // Reconnect when user switches back to tab
+    refetchOnWindowFocus: true,
     // This will cause the actor to be recreated when the identity changes
     enabled: true,
   });
@@ -55,5 +60,7 @@ export function useActor() {
   return {
     actor: actorQuery.data || null,
     isFetching: actorQuery.isFetching,
+    isError: actorQuery.isError,
+    error: actorQuery.error,
   };
 }

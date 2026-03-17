@@ -20,6 +20,7 @@ import { AdminIncomeDistribution } from "./pages/admin/AdminIncomeDistribution";
 import { AdminLogin } from "./pages/admin/AdminLogin";
 import { AdminPackages } from "./pages/admin/AdminPackages";
 import { AdminProducts } from "./pages/admin/AdminProducts";
+import { AdminRecharge } from "./pages/admin/AdminRecharge";
 import { AdminTreePage } from "./pages/admin/AdminTreePage";
 import { AdminUsers } from "./pages/admin/AdminUsers";
 import { AdminWithdrawals } from "./pages/admin/AdminWithdrawals";
@@ -180,6 +181,12 @@ const adminWithdrawalsRoute = createRoute({
   component: AdminWithdrawals,
 });
 
+const adminRechargeRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: "/admin/recharge",
+  component: AdminRecharge,
+});
+
 const adminAnnouncementsRoute = createRoute({
   getParentRoute: () => adminLayoutRoute,
   path: "/admin/announcements",
@@ -233,6 +240,7 @@ const routeTree = rootRoute.addChildren([
     adminIndexRoute,
     adminUsersRoute,
     adminWithdrawalsRoute,
+    adminRechargeRoute,
     adminAnnouncementsRoute,
     adminPackagesRoute,
     adminProductsRoute,

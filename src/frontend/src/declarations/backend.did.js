@@ -154,6 +154,7 @@ export const idlService = IDL.Service({
   'getAllAnnouncements' : IDL.Func([], [IDL.Vec(Announcement)], ['query']),
   'getAllMobileUsers' : IDL.Func([], [IDL.Vec(MobileUser)], ['query']),
   'getAllPackages' : IDL.Func([], [IDL.Vec(Package)], ['query']),
+    'resetDefaultPackages' : IDL.Func([], [], []),
   'getAllUsers' : IDL.Func([], [IDL.Vec(User)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
@@ -375,6 +376,7 @@ export const idlFactory = ({ IDL }) => {
     'getAllAnnouncements' : IDL.Func([], [IDL.Vec(Announcement)], ['query']),
     'getAllMobileUsers' : IDL.Func([], [IDL.Vec(MobileUser)], ['query']),
     'getAllPackages' : IDL.Func([], [IDL.Vec(Package)], ['query']),
+    'resetDefaultPackages' : IDL.Func([], [], []),
     'getAllUsers' : IDL.Func([], [IDL.Vec(User)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
@@ -449,6 +451,13 @@ export const idlFactory = ({ IDL }) => {
     'setUserActiveStatus' : IDL.Func([IDL.Principal, IDL.Bool], [], []),
     'updateUserRank' : IDL.Func([IDL.Principal, Rank], [], []),
     'verifyMobileLogin' : IDL.Func([IDL.Text, IDL.Text], [IDL.Opt(MobileUserPublic)], ['query']),
+    'submitRechargeRequest': IDL.Func([IDL.Text, IDL.Nat, RechargeMethod, IDL.Text, IDL.Text, IDL.Text], [IDL.Text], []),
+    'getRechargeRequests': IDL.Func([], [IDL.Vec(RechargeRequest)], ['query']),
+    'getMyRechargeRequests': IDL.Func([IDL.Text], [IDL.Vec(RechargeRequest)], ['query']),
+    'approveRechargeRequest': IDL.Func([IDL.Text, IDL.Text], [], []),
+    'rejectRechargeRequest': IDL.Func([IDL.Text, IDL.Text], [], []),
+    'adminCreditWallet': IDL.Func([IDL.Text, IDL.Nat, IDL.Text], [], []),
+
   });
 };
 

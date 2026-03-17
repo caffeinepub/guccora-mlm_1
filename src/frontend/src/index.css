@@ -180,4 +180,184 @@
     );
     color: white;
   }
+
+  /* ── Premium Plan Card Variants ── */
+
+  /* Starter: dark with subtle gold border glow */
+  .plan-card-starter {
+    background: linear-gradient(145deg, oklch(11% 0.09 298), oklch(9% 0.07 295));
+    border: 1px solid oklch(72.6% 0.116 73 / 0.25);
+    box-shadow: 0 0 0 1px oklch(72.6% 0.116 73 / 0.08), 0 4px 20px
+      oklch(0% 0 0 / 0.5);
+  }
+  .plan-card-starter:hover {
+    border-color: oklch(72.6% 0.116 73 / 0.5);
+    box-shadow: 0 0 28px oklch(72.6% 0.116 73 / 0.18), 0 8px 32px
+      oklch(0% 0 0 / 0.6);
+  }
+
+  /* Silver: cool silver-to-gold shimmer */
+  .plan-card-silver {
+    background: linear-gradient(
+      145deg,
+      oklch(13% 0.06 250),
+      oklch(11% 0.05 280) 50%,
+      oklch(12% 0.07 295)
+    );
+    border: 1px solid oklch(75% 0.02 240 / 0.35);
+    box-shadow: 0 0 0 1px oklch(75% 0.02 240 / 0.12), 0 4px 20px
+      oklch(0% 0 0 / 0.5);
+  }
+  .plan-card-silver:hover {
+    border-color: oklch(75% 0.02 240 / 0.65);
+    box-shadow: 0 0 28px oklch(72.6% 0.116 73 / 0.22), 0 8px 32px
+      oklch(0% 0 0 / 0.6);
+  }
+
+  /* Gold: rich gold gradient — flagship card */
+  .plan-card-gold {
+    background: linear-gradient(
+      135deg,
+      oklch(22% 0.12 70),
+      oklch(18% 0.1 68) 40%,
+      oklch(20% 0.09 72) 70%,
+      oklch(16% 0.08 65)
+    );
+    border: 1px solid oklch(72.6% 0.116 73 / 0.6);
+    box-shadow: 0 0 0 1px oklch(72.6% 0.116 73 / 0.2), 0 0 40px
+      oklch(72.6% 0.116 73 / 0.18), 0 8px 32px oklch(0% 0 0 / 0.6);
+    position: relative;
+    overflow: hidden;
+  }
+  .plan-card-gold::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      45deg,
+      transparent 30%,
+      oklch(80.4% 0.108 77 / 0.06) 50%,
+      transparent 70%
+    );
+    pointer-events: none;
+  }
+  .plan-card-gold:hover {
+    box-shadow: 0 0 0 1px oklch(72.6% 0.116 73 / 0.4), 0 0 55px
+      oklch(72.6% 0.116 73 / 0.35), 0 12px 40px oklch(0% 0 0 / 0.7);
+  }
+
+  /* Diamond: deep dark with diagonal jewel shimmer */
+  .plan-card-diamond {
+    background: linear-gradient(
+      155deg,
+      oklch(10% 0.04 270),
+      oklch(8% 0.06 290) 35%,
+      oklch(12% 0.1 260) 65%,
+      oklch(9% 0.08 280)
+    );
+    border: 1px solid oklch(70% 0.15 260 / 0.35);
+    box-shadow: 0 0 0 1px oklch(70% 0.15 260 / 0.12), 0 4px 20px
+      oklch(0% 0 0 / 0.6);
+    position: relative;
+    overflow: hidden;
+  }
+  .plan-card-diamond::before {
+    content: "";
+    position: absolute;
+    top: -30%;
+    left: -30%;
+    width: 160%;
+    height: 160%;
+    background: linear-gradient(
+      135deg,
+      transparent 40%,
+      oklch(70% 0.15 260 / 0.07) 50%,
+      oklch(72.6% 0.116 73 / 0.05) 55%,
+      transparent 65%
+    );
+    pointer-events: none;
+  }
+  .plan-card-diamond:hover {
+    border-color: oklch(70% 0.15 260 / 0.65);
+    box-shadow: 0 0 28px oklch(70% 0.15 260 / 0.25), 0 0 60px
+      oklch(72.6% 0.116 73 / 0.12), 0 12px 40px oklch(0% 0 0 / 0.7);
+  }
+
+  /* Premium button variants */
+  .btn-starter {
+    background: transparent;
+    border: 1px solid oklch(72.6% 0.116 73 / 0.6);
+    color: oklch(72.6% 0.116 73);
+    transition: all 0.2s ease;
+  }
+  .btn-starter:hover {
+    background: oklch(72.6% 0.116 73 / 0.12);
+    box-shadow: 0 0 16px oklch(72.6% 0.116 73 / 0.3);
+  }
+
+  .btn-silver {
+    background: linear-gradient(
+      135deg,
+      oklch(55% 0.02 240 / 0.4),
+      oklch(65% 0.04 250 / 0.3)
+    );
+    border: 1px solid oklch(75% 0.02 240 / 0.5);
+    color: oklch(88% 0.01 240);
+    transition: all 0.2s ease;
+  }
+  .btn-silver:hover {
+    background: linear-gradient(
+      135deg,
+      oklch(60% 0.03 240 / 0.55),
+      oklch(70% 0.06 250 / 0.4)
+    );
+    box-shadow: 0 0 16px oklch(72.6% 0.116 73 / 0.25);
+  }
+
+  .btn-gold {
+    background: linear-gradient(
+      135deg,
+      oklch(72.6% 0.116 73),
+      oklch(80.4% 0.108 77) 50%,
+      oklch(65% 0.1 68)
+    );
+    border: none;
+    color: oklch(10% 0.08 298);
+    font-weight: 700;
+    transition: all 0.2s ease;
+  }
+  .btn-gold:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 0 24px oklch(72.6% 0.116 73 / 0.5);
+  }
+
+  .btn-diamond {
+    background: linear-gradient(
+      135deg,
+      oklch(30% 0.14 260),
+      oklch(40% 0.16 280) 50%,
+      oklch(35% 0.12 270)
+    );
+    border: 1px solid oklch(70% 0.15 260 / 0.5);
+    color: oklch(90% 0.06 260);
+    transition: all 0.2s ease;
+  }
+  .btn-diamond:hover {
+    filter: brightness(1.15);
+    box-shadow: 0 0 24px oklch(70% 0.15 260 / 0.4);
+  }
+
+  /* Shimmer animation for CTA */
+  .btn-shimmer {
+    background-size: 200% auto;
+    background-image: linear-gradient(
+      135deg,
+      oklch(72.6% 0.116 73) 0%,
+      oklch(80.4% 0.108 77) 30%,
+      oklch(90% 0.12 78) 50%,
+      oklch(80.4% 0.108 77) 70%,
+      oklch(65% 0.1 68) 100%
+    );
+    animation: shimmer 2.5s linear infinite;
+  }
 }

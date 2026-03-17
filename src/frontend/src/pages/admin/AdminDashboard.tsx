@@ -1,37 +1,66 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
+  AlertCircle,
   Loader2,
   Network,
+  RefreshCw,
   Shield,
   TrendingUp,
   UserCheck,
   Users,
+  Wifi,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
+import { useActor } from "../../hooks/useActor";
 import {
   useCreateFirstAdmin,
   useGlobalStats,
-  useIsAdmin,
+  useIsAdminConfigured,
 } from "../../hooks/useQueries";
 import { formatRupees } from "../../lib/formatters";
 
 export function AdminDashboard() {
-  const { data: stats, isLoading } = useGlobalStats();
-  const { data: isAdmin } = useIsAdmin();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { actor, isFetching: actorLoading, isError: actorError } = useActor();
+  const { data: stats, isLoading: statsLoading } = useGlobalStats();
+  const { data: isAdminConfigured, isFetching: isAdminCheckLoading } =
+    useIsAdminConfigured();
   const createAdminMutation = useCreateFirstAdmin();
 
+  const isStatsLoading = actorLoading || statsLoading || !actor;
+  const actorNotReady = actorLoading || !actor;
+  const backendUnavailable = !actorLoading && !actor;
+
+  const handleRetryConnection = () => {
+    queryClient.refetchQueries({ queryKey: ["actor"] });
+    toast.info("Retrying backend connection…");
+  };
+
   const handleCreateAdmin = async () => {
+    if (!actor) {
+      toast.error("Backend not connected. Please wait and try again.");
+      return;
+    }
     try {
       await createAdminMutation.mutateAsync();
-      toast.success(
-        "GUCCORA Admin account created! Sponsor code ADMIN001 is now active.",
-      );
+      toast.success("GUCCORA Admin account created! Redirecting to login…");
+      setTimeout(() => {
+        navigate({ to: "/admin-login" });
+      }, 1500);
     } catch (err: any) {
-      toast.error(err?.message ?? "Failed to create admin");
+      const msg = err?.message ?? "Failed to create admin";
+      if (msg.toLowerCase().includes("already exists")) {
+        toast.info("Admin already set up. Redirecting to login…");
+        setTimeout(() => navigate({ to: "/admin-login" }), 1000);
+      } else {
+        toast.error(msg);
+      }
     }
   };
 
@@ -58,31 +87,77 @@ export function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="font-display text-2xl font-bold flex items-center gap-3">
           <Shield size={24} className="text-red-400" />
           Admin Overview
         </h1>
-        {!isAdmin && (
-          <div className="flex flex-col items-end">
+
+        {/* Connection / Setup button area */}
+        {actorLoading ? (
+          <div
+            className="flex items-center gap-2 text-sm text-muted-foreground"
+            data-ocid="admin.loading_state"
+          >
+            <Wifi size={14} className="animate-pulse text-amber-400" />
+            Connecting to backend…
+          </div>
+        ) : backendUnavailable || actorError ? (
+          <div
+            className="flex items-center gap-2"
+            data-ocid="admin.error_state"
+          >
+            <span className="flex items-center gap-1.5 text-sm text-destructive">
+              <AlertCircle size={14} />
+              Backend unavailable
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRetryConnection}
+              className="h-7 px-2 text-xs border-destructive/40 text-destructive hover:bg-destructive/10"
+              data-ocid="admin.secondary_button"
+            >
+              <RefreshCw size={12} className="mr-1" />
+              Retry
+            </Button>
+          </div>
+        ) : isAdminCheckLoading ? (
+          <div
+            className="flex items-center gap-2 text-sm text-muted-foreground"
+            data-ocid="admin.loading_state"
+          >
+            <Loader2 size={14} className="animate-spin text-amber-400" />
+            Checking setup status…
+          </div>
+        ) : !isAdminConfigured ? (
+          <div className="flex flex-col items-end gap-1">
             <Button
               onClick={handleCreateAdmin}
               className="gold-gradient text-primary-foreground font-semibold"
-              disabled={createAdminMutation.isPending}
+              disabled={createAdminMutation.isPending || actorNotReady}
               data-ocid="admin.primary_button"
             >
               {createAdminMutation.isPending ? (
                 <>
                   <Loader2 size={16} className="mr-2 animate-spin" />
-                  Setting up...
+                  Setting up…
                 </>
               ) : (
                 "Setup GUCCORA Admin"
               )}
             </Button>
-            <p className="text-xs text-muted-foreground mt-1">
-              Username: admin · Sponsor Code: ADMIN001 · Role: Super Admin
+            <p className="text-xs text-muted-foreground">
+              Username: admin · Password: Admin@123 · Sponsor: ADMIN001
             </p>
+          </div>
+        ) : (
+          <div
+            className="flex items-center gap-2 text-sm text-emerald-400"
+            data-ocid="admin.success_state"
+          >
+            <Shield size={14} />
+            Admin configured
           </div>
         )}
       </div>
@@ -107,11 +182,8 @@ export function AdminDashboard() {
                   </span>
                   <card.icon size={18} className={card.color} />
                 </div>
-                {isLoading || card.value === null ? (
-                  <Skeleton
-                    className="h-8 w-28"
-                    data-ocid="admin.loading_state"
-                  />
+                {isStatsLoading || card.value === null ? (
+                  <Skeleton className="h-8 w-28" />
                 ) : (
                   <div
                     className={`font-display text-2xl font-bold ${card.color}`}
@@ -151,6 +223,12 @@ export function AdminDashboard() {
             label: "Packages",
             icon: UserCheck,
             desc: "Manage membership packages",
+          },
+          {
+            to: "/admin/products",
+            label: "Products",
+            icon: UserCheck,
+            desc: "Manage product catalog",
           },
           {
             to: "/admin/income",

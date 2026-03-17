@@ -145,6 +145,21 @@ export function useIsAdmin() {
   });
 }
 
+// Checks if the root admin account has been created (no auth needed)
+export function useIsAdminConfigured() {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["isAdminConfigured"],
+    queryFn: async () => {
+      if (!actor) return false;
+      return actor.isAdminConfigured();
+    },
+    enabled: !!actor && !isFetching,
+    retry: 2,
+    refetchOnWindowFocus: true,
+  });
+}
+
 export function usePackages() {
   const { actor, isFetching } = useActor();
   return useQuery({
@@ -187,9 +202,21 @@ export function useGlobalStats() {
     queryKey: ["globalStats"],
     queryFn: async () => {
       if (!actor) return null;
-      return actor.getGlobalStats();
+      try {
+        return await actor.getGlobalStats();
+      } catch {
+        // Admin not configured yet or unauthorized - return zeros
+        return {
+          totalUsers: BigInt(0),
+          activeUsers: BigInt(0),
+          totalPaidOut: BigInt(0),
+        };
+      }
     },
     enabled: !!actor && !isFetching,
+    retry: false,
+    // Auto-refresh stats every 30s
+    refetchInterval: 30000,
   });
 }
 
@@ -381,7 +408,10 @@ export function useCreateFirstAdmin() {
       if (!actor) throw new Error("Not connected");
       return actor.createFirstAdmin();
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["isAdmin", "myRole"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["isAdminConfigured"] });
+      qc.invalidateQueries({ queryKey: ["globalStats"] });
+    },
   });
 }
 

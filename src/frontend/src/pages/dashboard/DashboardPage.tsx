@@ -3,6 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowUpRight,
+  Award,
   Gift,
   GitBranch,
   Megaphone,
@@ -29,6 +30,13 @@ import {
   formatRupees,
   txTypeLabel,
 } from "../../lib/formatters";
+
+const PLAN_MAP: Record<number, { name: string; price: number }> = {
+  1: { name: "Starter Plan", price: 499 },
+  2: { name: "Silver Plan", price: 999 },
+  3: { name: "Gold Plan", price: 1999 },
+  4: { name: "Diamond Plan", price: 2999 },
+};
 
 export function DashboardPage() {
   const { mobileSession } = useMobileSession();
@@ -102,6 +110,19 @@ export function DashboardPage() {
     if (walletLoading) return null;
     return wallet ? formatRupees(wallet.totalEarnings) : "\u20B90";
   };
+
+  // Active plan
+  const activePlanId: number | null =
+    mobileData?.activePlanId != null ? Number(mobileData.activePlanId) : null;
+  const activePlan = activePlanId != null ? PLAN_MAP[activePlanId] : null;
+  const activationDateMs: number | null =
+    mobileData?.activationDate != null
+      ? Number(mobileData.activationDate)
+      : null;
+  const activationDateFormatted =
+    activationDateMs && activationDateMs > 0
+      ? formatDateTime(BigInt(activationDateMs) * 1_000_000n)
+      : null;
 
   return (
     <div className="space-y-6">
@@ -204,6 +225,94 @@ export function DashboardPage() {
           </motion.div>
         ))}
       </div>
+
+      {/* Active Plan Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.28 }}
+      >
+        <Card
+          className="bg-gradient-to-br from-amber-900/40 via-yellow-900/20 to-amber-800/10 border-amber-500/30 card-glow"
+          data-ocid="dashboard.active_plan.card"
+        >
+          <CardContent className="p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                  <Award size={22} className="text-amber-400" />
+                </div>
+                <div>
+                  <div className="text-muted-foreground text-xs mb-1 font-medium uppercase tracking-wide">
+                    My Active Plan
+                  </div>
+                  {activePlan ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="font-display text-lg font-bold text-amber-300">
+                          {activePlan.name}
+                        </span>
+                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+                          ACTIVE
+                        </span>
+                      </div>
+                      <div className="text-amber-400 font-bold text-base">
+                        ₹{activePlan.price.toLocaleString("en-IN")}
+                      </div>
+                      {activationDateFormatted ? (
+                        <div className="text-muted-foreground text-xs mt-0.5">
+                          Activated: {activationDateFormatted}
+                        </div>
+                      ) : (
+                        <div className="text-muted-foreground text-xs mt-0.5">
+                          Activated: —
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="font-display text-base font-semibold text-muted-foreground">
+                        No Active Plan
+                      </div>
+                      <div className="text-muted-foreground text-xs mt-0.5">
+                        Purchase a plan to activate your MLM account.
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="shrink-0">
+                {activePlan ? (
+                  activePlanId !== null && activePlanId >= 4 ? (
+                    <div className="text-xs text-amber-400 font-semibold px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center">
+                      ⭐ Top Plan — No upgrade needed
+                    </div>
+                  ) : (
+                    <Link
+                      to="/packages"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-amber-500/50 text-amber-400 text-sm font-semibold hover:bg-amber-500/10 transition-colors"
+                      data-ocid="dashboard.active_plan.button"
+                    >
+                      <ArrowUpRight size={15} />
+                      Upgrade Plan
+                    </Link>
+                  )
+                ) : (
+                  <Link
+                    to="/packages"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-sm font-semibold hover:bg-amber-500/30 transition-colors"
+                    data-ocid="dashboard.active_plan.button"
+                  >
+                    Get Started
+                    <ArrowUpRight size={15} />
+                  </Link>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Income breakdown */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

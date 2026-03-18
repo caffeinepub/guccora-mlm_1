@@ -241,6 +241,10 @@ export interface backendInterface {
     requestWithdrawal(amount: bigint, paymentMethod: string, paymentDetails: string): Promise<string>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     setUserActiveStatus(userId: Principal, isActive: boolean): Promise<void>;
+    sendOtpToPhone(phone: string): Promise<string>;
+    verifyPhoneOtp(phone: string, otp: string): Promise<boolean>;
+    setMsg91Config(authKey: string, templateId: string, senderId: string): Promise<void>;
+    getMsg91Config(): Promise<{ configured: boolean; templateId: string; senderId: string }>;
     updateUserRank(userId: Principal, newRank: Rank): Promise<void>;
 }
 import type { Position as _Position, Rank as _Rank, Time as _Time, Transaction as _Transaction, TransactionStatus as _TransactionStatus, TransactionType as _TransactionType, User as _User, UserProfile as _UserProfile, UserRole as _UserRole, Wallet as _Wallet, WithdrawalRequest as _WithdrawalRequest } from "./declarations/backend.did.d.ts";
@@ -875,6 +879,38 @@ export class Backend implements backendInterface {
             }
             return await this.actor.adminCreditWallet(phone, amount, note);
         } catch(e) { throw e; }
+    }
+    async sendOtpToPhone(phone: string): Promise<string> {
+        if (this.processError) {
+            try { return await this.actor.sendOtpToPhone(phone); }
+            catch(e) { this.processError(e); throw new Error("unreachable"); }
+        }
+        return await this.actor.sendOtpToPhone(phone);
+    }
+    async verifyPhoneOtp(phone: string, otp: string): Promise<boolean> {
+        if (this.processError) {
+            try { return await this.actor.verifyPhoneOtp(phone, otp); }
+            catch(e) { this.processError(e); throw new Error("unreachable"); }
+        }
+        return await this.actor.verifyPhoneOtp(phone, otp);
+    }
+    async setMsg91Config(authKey: string, templateId: string, senderId: string): Promise<void> {
+        if (this.processError) {
+            try { return await this.actor.setMsg91Config(authKey, templateId, senderId); }
+            catch(e) { this.processError(e); throw new Error("unreachable"); }
+        }
+        return await this.actor.setMsg91Config(authKey, templateId, senderId);
+    }
+    async getMsg91Config(): Promise<{ configured: boolean; templateId: string; senderId: string }> {
+        if (this.processError) {
+            try {
+                const r = await this.actor.getMsg91Config();
+                return { configured: Boolean(r.configured), templateId: String(r.templateId), senderId: String(r.senderId) };
+            }
+            catch(e) { this.processError(e); throw new Error("unreachable"); }
+        }
+        const r = await this.actor.getMsg91Config();
+        return { configured: Boolean(r.configured), templateId: String(r.templateId), senderId: String(r.senderId) };
     }
 
 }

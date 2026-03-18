@@ -1,34 +1,42 @@
 # GUCCORA MLM
 
 ## Current State
-- Homepage has a registration card ("Start Your GUCCORA Journey") with Send OTP button but OTP display and inline verification flow are incomplete.
-- Admin login at `/admin-login` uses username/password but hardcoded credential is `admin123`.
-- No bank details section exists in the user dashboard.
-- Withdrawal requests do not show bank details to admin.
+
+Full MLM app running on Internet Computer with Motoko backend. Backend has all required functions: `registerMobileUser`, `purchaseMobileUserPlan`, `verifyMobileLogin`, `createFirstAdmin`, MLM income distribution, wallet, withdrawal, recharge, bank details, binary tree, and admin control. OTP is currently generated in-memory and shown on-screen for testing only -- no real SMS is sent.
+
+Frontend has backend.ts with all function declarations and implementations. All major pages exist: homepage, register, login, dashboard, admin panel, wallet, income, tree, bank details.
 
 ## Requested Changes (Diff)
 
 ### Add
-- BankDetails type in backend: AccountHolderName, BankName, AccountNumber, IFSCCode, UPIID, BranchName
-- Backend functions: `saveBankDetails(phone, details)`, `getBankDetails(phone)`, `getBankDetailsByUserId(userId)` (admin)
-- Stable store `_bankDetailsStable` for persistence
-- `BankDetailsPage.tsx` in user dashboard with save/edit form
-- Route `/dashboard/bank-details` wired in App.tsx and DashboardLayout sidebar
+- Real SMS OTP delivery via MSG91 HTTP outcall from backend (http-outcalls component)
+- `sendOtpToPhone(phone)` backend function using MSG91 API
+- `verifyPhoneOtp(phone, otp)` backend function checking against stored OTP
+- MSG91 config stored as backend variable (authKey, templateId, senderId)
+- Admin can configure MSG91 credentials via admin panel
+- Fallback: if MSG91 not configured, show OTP on screen (dev mode)
+- Frontend registration flow updated to call `sendOtpToPhone` first, then `registerMobileUser` with verified OTP
+- Frontend login flow updated to use `sendOtpToPhone` + verify before login
+- SMS config section in admin panel for MSG91 key setup
 
 ### Modify
-- `LandingPage.tsx` homepage registration section: after Send OTP generates OTP, display the 6-digit OTP visibly on screen (testing mode), show OTP input field inline, and add "Verify & Create Account" button — all within the homepage card.
-- `AdminLogin.tsx`: update hardcoded password check to accept `Admin@123` (also keep `admin123` for backward compat), update display of default credentials.
-- `_adminPassword` stable var in backend default changed to `Admin@123`.
-- `AdminWithdrawals.tsx`: when rendering a withdrawal request row/detail, fetch and display the user's bank details.
+- `registerMobileUser` to accept pre-verified OTP token (or verify inline with stored OTP)
+- Frontend registration and login pages to show real SMS status
+- Admin panel to include SMS configuration section
+- All income calculations to remain automatic as-is
 
 ### Remove
-- Nothing removed.
+- On-screen OTP display when MSG91 is configured
 
 ## Implementation Plan
-1. Update `src/backend/main.mo`: add BankDetails type, stable map, `saveBankDetails`, `getBankDetails`, `getBankDetailsByPhone` (admin) functions; update `_adminPassword` default to `Admin@123`.
-2. Update `src/frontend/src/pages/LandingPage.tsx`: show generated OTP on-screen after Send OTP click; render OTP input and verify button inline.
-3. Update `src/frontend/src/pages/admin/AdminLogin.tsx`: accept `Admin@123` as valid password.
-4. Create `src/frontend/src/pages/dashboard/BankDetailsPage.tsx`: form with all 6 fields, save/edit flow using backend.
-5. Update `src/frontend/src/App.tsx`: add `/dashboard/bank-details` route.
-6. Update `src/frontend/src/components/layout/DashboardLayout.tsx`: add Bank Details nav link.
-7. Update `src/frontend/src/pages/admin/AdminWithdrawals.tsx`: show bank details per user.
+
+1. Select http-outcalls component
+2. Regenerate backend adding:
+   - MSG91 OTP send function via HTTP outcall
+   - OTP verification function
+   - Admin MSG91 config storage
+   - All existing MLM functions preserved
+3. Update frontend backend.ts declarations
+4. Update RegisterPage, LoginPage, LandingPage OTP flows
+5. Add SMS Config section to admin panel
+6. Deploy

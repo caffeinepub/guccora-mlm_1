@@ -219,7 +219,7 @@ function OtpRegistrationCard() {
   const [otpVerified, setOtpVerified] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
 
-  const handleSendOtp = (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regName.trim()) {
       toast.error("Please enter your full name");
@@ -233,24 +233,42 @@ function OtpRegistrationCard() {
       toast.error("Password must be at least 6 characters");
       return;
     }
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
-    setGeneratedOtp(otp);
-    setOtpSent(true);
-    toast.success("OTP generated! Check the display below.");
-  };
-
-  const handleVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (regOtp !== generatedOtp) {
-      toast.error("Incorrect OTP. Please try again.");
-      return;
-    }
     if (!actor) {
       toast.error("Not connected to backend");
       return;
     }
     setRegLoading(true);
     try {
+      const result = await actor.sendOtpToPhone(`+91${regPhone}`);
+      if (result === "sent") {
+        setGeneratedOtp("");
+        toast.success("OTP sent to your mobile number via SMS");
+      } else {
+        setGeneratedOtp(result);
+        toast.success(`OTP: ${result} (Dev mode - SMS not configured)`);
+      }
+      setOtpSent(true);
+    } catch {
+      toast.error("Failed to send OTP. Please try again.");
+    } finally {
+      setRegLoading(false);
+    }
+  };
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!actor) {
+      toast.error("Not connected to backend");
+      return;
+    }
+    setRegLoading(true);
+    try {
+      const isValid = await actor.verifyPhoneOtp(`+91${regPhone}`, regOtp);
+      if (!isValid) {
+        toast.error("Incorrect or expired OTP. Please try again.");
+        setRegLoading(false);
+        return;
+      }
       const sponsorCode = regSponsor.trim() || "ADMIN001";
       const userId = await actor.registerMobileUser(
         regName.trim(),

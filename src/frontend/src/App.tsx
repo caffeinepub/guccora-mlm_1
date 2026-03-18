@@ -21,6 +21,7 @@ import { AdminLogin } from "./pages/admin/AdminLogin";
 import { AdminPackages } from "./pages/admin/AdminPackages";
 import { AdminProducts } from "./pages/admin/AdminProducts";
 import { AdminRecharge } from "./pages/admin/AdminRecharge";
+import { AdminSmsConfig } from "./pages/admin/AdminSmsConfig";
 import { AdminTreePage } from "./pages/admin/AdminTreePage";
 import { AdminUsers } from "./pages/admin/AdminUsers";
 import { AdminWithdrawals } from "./pages/admin/AdminWithdrawals";
@@ -217,6 +218,12 @@ const adminTreeRoute = createRoute({
   component: AdminTreePage,
 });
 
+const adminSmsConfigRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: "/admin/sms-config",
+  component: AdminSmsConfig,
+});
+
 const routeTree = rootRoute.addChildren([
   publicLayoutRoute.addChildren([
     indexRoute,
@@ -246,6 +253,7 @@ const routeTree = rootRoute.addChildren([
     adminProductsRoute,
     adminIncomeRoute,
     adminTreeRoute,
+    adminSmsConfigRoute,
   ]),
 ]);
 

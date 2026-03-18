@@ -23,26 +23,10 @@ export function LoginPage() {
   const [enteredOtp, setEnteredOtp] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSendOtp = (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (phone.length !== 10 || !/^\d{10}$/.test(phone)) {
       toast.error("Enter a valid 10-digit mobile number");
-      return;
-    }
-    setLoading(true);
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
-    setGeneratedOtp(otp);
-    setTimeout(() => {
-      setStep("otp");
-      setLoading(false);
-      toast.success("OTP generated (demo mode)");
-    }, 600);
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (enteredOtp !== generatedOtp) {
-      toast.error("Incorrect OTP. Please try again.");
       return;
     }
     if (!actor) {
@@ -51,7 +35,36 @@ export function LoginPage() {
     }
     setLoading(true);
     try {
-      // Try to find the user by phone number
+      const result = await actor.sendOtpToPhone(`+91${phone}`);
+      if (result === "sent") {
+        setGeneratedOtp("");
+        toast.success("OTP sent to your mobile number");
+      } else {
+        setGeneratedOtp(result);
+        toast.success(`OTP: ${result} (Dev mode)`);
+      }
+      setStep("otp");
+    } catch {
+      toast.error("Failed to send OTP. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!actor) {
+      toast.error("Not connected to backend");
+      return;
+    }
+    setLoading(true);
+    try {
+      const isValid = await actor.verifyPhoneOtp(`+91${phone}`, enteredOtp);
+      if (!isValid) {
+        toast.error("Incorrect or expired OTP. Please try again.");
+        setLoading(false);
+        return;
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const user = await (actor as any).getMobileUserByPhone(`+91${phone}`);
       if (!user || (Array.isArray(user) && user.length === 0)) {
@@ -70,7 +83,6 @@ export function LoginPage() {
       toast.success(`Welcome back, ${userData.fullName}!`);
       navigate({ to: "/dashboard" });
     } catch {
-      // Fallback: if backend call fails, check localStorage for demo
       toast.error("Login failed. Please check your number or register first.");
     } finally {
       setLoading(false);

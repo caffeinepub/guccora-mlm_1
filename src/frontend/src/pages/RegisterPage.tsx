@@ -61,23 +61,11 @@ export function RegisterPage() {
     return errs;
   };
 
-  const handleSendOtp = (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
-      return;
-    }
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
-    setGeneratedOtp(otp);
-    setStep("otp");
-    toast.success("OTP has been sent to your mobile number");
-  };
-
-  const handleVerifyAndRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (enteredOtp !== generatedOtp) {
-      toast.error("Incorrect OTP. Please try again.");
       return;
     }
     if (!actor) {
@@ -85,8 +73,41 @@ export function RegisterPage() {
       return;
     }
     setLoading(true);
-    const sponsorCode = form.sponsorId.trim() || "ADMIN001";
     try {
+      const result = await actor.sendOtpToPhone(`+91${form.phone}`);
+      if (result === "sent") {
+        setGeneratedOtp("");
+        toast.success("OTP sent to your mobile number via SMS");
+      } else {
+        setGeneratedOtp(result);
+        toast.success(`OTP: ${result} (Dev mode - SMS not configured)`);
+      }
+      setStep("otp");
+    } catch {
+      toast.error("Failed to send OTP. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyAndRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!actor) {
+      toast.error("Not connected to backend");
+      return;
+    }
+    setLoading(true);
+    try {
+      const isValid = await actor.verifyPhoneOtp(
+        `+91${form.phone}`,
+        enteredOtp,
+      );
+      if (!isValid) {
+        toast.error("Incorrect or expired OTP. Please try again.");
+        setLoading(false);
+        return;
+      }
+      const sponsorCode = form.sponsorId.trim() || "ADMIN001";
       const userId = await actor.registerMobileUser(
         form.fullName.trim(),
         `+91${form.phone}`,
@@ -97,7 +118,6 @@ export function RegisterPage() {
         typeof userId === "string" && userId.length > 0
           ? userId
           : `GC${Date.now().toString().slice(-4)}`;
-
       setMobileSession({
         userId: resolvedUserId,
         fullName: form.fullName.trim(),
@@ -349,6 +369,18 @@ export function RegisterPage() {
                     </span>
                   </p>
                 </div>
+
+                {/* Dev mode OTP display */}
+                {generatedOtp && (
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-center">
+                    <p className="text-xs text-yellow-300 mb-1">
+                      Dev Mode — OTP (SMS not configured)
+                    </p>
+                    <p className="font-mono text-2xl font-bold tracking-widest text-yellow-200">
+                      {generatedOtp}
+                    </p>
+                  </div>
+                )}
 
                 {/* OTP sent confirmation */}
                 <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 flex items-start gap-3">

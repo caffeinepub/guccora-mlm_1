@@ -9,6 +9,7 @@ import {
   LogOut,
   Megaphone,
   Menu,
+  MessageSquare,
   Network,
   Package,
   ShoppingBag,
@@ -28,6 +29,7 @@ const adminNavItems = [
   { to: "/admin/products", label: "Products", icon: ShoppingBag },
   { to: "/admin/income", label: "Income Distribution", icon: DollarSign },
   { to: "/admin/tree", label: "Tree View", icon: Network },
+  { to: "/admin/sms-config", label: "SMS Config", icon: MessageSquare },
 ];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {

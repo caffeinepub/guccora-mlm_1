@@ -27,7 +27,8 @@ import { formatRupees } from "../../lib/formatters";
 export function AdminDashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { actor, isFetching: actorLoading, isError: actorError } = useActor();
+  const { actor, isFetching: actorLoading } = useActor();
+  const actorError = !actorLoading && !actor;
   const { data: stats, isLoading: statsLoading } = useGlobalStats();
   const { data: isAdminConfigured, isFetching: isAdminCheckLoading } =
     useIsAdminConfigured();

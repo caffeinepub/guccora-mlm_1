@@ -11,6 +11,7 @@ import Iter "mo:core/Iter";
 import Int "mo:core/Int";
 import Nat "mo:core/Nat";
 import MixinAuthorization "authorization/MixinAuthorization";
+import HttpOutcall "http-outcalls/outcall";
 import AccessControl "authorization/access-control";
 
 
@@ -255,6 +256,15 @@ actor {
   stable var _rechargeRequestsStable : [(Text, RechargeRequest)] = [];
   stable var _nextRechargeIdStable : Nat = 0;
 
+  // ── OTP STORE (phone -> {otp, expiry}) ──────────────────────────────────
+  stable var _msg91AuthKey : Text = "";
+  stable var _msg91TemplateId : Text = "";
+  stable var _msg91SenderId : Text = "GUCCOR";
+  // OTP store: phone -> (otp: Text, expiry: Int)
+  stable var _otpStoreStable : [(Text, (Text, Int))] = [];
+  let otpStore = Map.empty<Text, (Text, Int)>();
+  // ── END OTP STORE ────────────────────────────────────────────────────────
+
   // Serialize all Maps into stable arrays before the upgrade wasm swap.
   system func preupgrade() {
     _usersStable := users.toArray();
@@ -274,6 +284,7 @@ actor {
     _nextMobileTxIdStable := nextMobileTxId;
     _rechargeRequestsStable := rechargeRequests.toArray();
     _nextRechargeIdStable := nextRechargeId;
+    _otpStoreStable := otpStore.toArray();
   };
 
   // Restore Maps from stable arrays after the upgrade and re-grant roles.
@@ -295,6 +306,7 @@ actor {
     nextMobileTxId := _nextMobileTxIdStable;
     for ((k, v) in _rechargeRequestsStable.values()) { rechargeRequests.add(k, v) };
     nextRechargeId := _nextRechargeIdStable;
+    for ((k, v) in _otpStoreStable.values()) { otpStore.add(k, v) };
 
     // Seed default packages with correct prices if none exist or reset to correct prices
     let defaultPkgs : [(Nat, Text, Nat, Text)] = [
@@ -1747,4 +1759,81 @@ actor {
 
   // ── END RECHARGE REQUEST FUNCTIONS ───────────────────────────────────────
 
+
+  // ── MSG91 SMS OTP FUNCTIONS ──────────────────────────────────────────────
+
+  // Admin: configure MSG91 credentials
+  public shared ({ caller }) func setMsg91Config(authKey : Text, templateId : Text, senderId : Text) : async () {
+    if (not isAdminCaller(caller)) {
+      Runtime.trap("Unauthorized: Only admins can configure SMS settings");
+    };
+    _msg91AuthKey := authKey;
+    _msg91TemplateId := templateId;
+    _msg91SenderId := senderId;
+  };
+
+  // Admin: get current MSG91 config (authKey masked for security)
+  public query ({ caller }) func getMsg91Config() : async { configured : Bool; templateId : Text; senderId : Text } {
+    if (not isAdminCaller(caller)) {
+      Runtime.trap("Unauthorized");
+    };
+    {
+      configured = _msg91AuthKey.size() > 0;
+      templateId = _msg91TemplateId;
+      senderId = _msg91SenderId;
+    };
+  };
+
+  // Transform function for HTTP outcalls
+  public query func transform(input : HttpOutcall.TransformationInput) : async HttpOutcall.TransformationOutput {
+    { input.response with headers = [] };
+  };
+
+  // Send OTP to phone number
+  // Returns: "sent" if MSG91 configured, or the OTP itself for dev/testing mode
+  public shared func sendOtpToPhone(phone : Text) : async Text {
+    if (phone.size() < 10) {
+      Runtime.trap("Valid mobile number is required");
+    };
+    // Generate 6-digit OTP
+    let now = Time.now();
+    // Simple deterministic OTP from time + phone hash
+    let seed = Int.abs(now) % 900000 + 100000;
+    let otp = seed.toText();
+    // Store OTP with 2-minute expiry (2 * 60 * 1_000_000_000 nanoseconds)
+    let expiry : Int = now + 120_000_000_000;
+    otpStore.add(phone, (otp, expiry));
+    // If MSG91 is configured, send real SMS
+    if (_msg91AuthKey.size() > 0) {
+      let url = "https://api.msg91.com/api/v5/flow/";
+      let body = "{\"template_id\":\"" # _msg91TemplateId # "\",\"short_url\":\"0\",\"realTimeResponse\":\"1\",\"recipients\":[{\"mobiles\":\"91" # phone # "\",\"OTP\":\"" # otp # "\"}]}";
+      let headers : [HttpOutcall.Header] = [
+        { name = "authkey"; value = _msg91AuthKey },
+        { name = "Content-Type"; value = "application/json" },
+        { name = "Accept"; value = "application/json" },
+      ];
+      let _ = await HttpOutcall.httpPostRequest(url, headers, body, transform);
+      "sent";
+    } else {
+      // Dev mode: return OTP in response
+      otp;
+    };
+  };
+
+  // Verify OTP for a phone number
+  public query func verifyPhoneOtp(phone : Text, otp : Text) : async Bool {
+    switch (otpStore.get(phone)) {
+      case null { false };
+      case (?(storedOtp, expiry)) {
+        let now = Time.now();
+        if (now > expiry) {
+          false; // OTP expired
+        } else {
+          storedOtp == otp;
+        };
+      };
+    };
+  };
+
+  // ── END MSG91 SMS OTP FUNCTIONS ──────────────────────────────────────────
 };

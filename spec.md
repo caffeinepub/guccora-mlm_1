@@ -1,42 +1,29 @@
 # GUCCORA MLM
 
 ## Current State
-
-Full MLM app running on Internet Computer with Motoko backend. Backend has all required functions: `registerMobileUser`, `purchaseMobileUserPlan`, `verifyMobileLogin`, `createFirstAdmin`, MLM income distribution, wallet, withdrawal, recharge, bank details, binary tree, and admin control. OTP is currently generated in-memory and shown on-screen for testing only -- no real SMS is sent.
-
-Frontend has backend.ts with all function declarations and implementations. All major pages exist: homepage, register, login, dashboard, admin panel, wallet, income, tree, bank details.
+Full MLM web app with Motoko backend, luxury black/gold UI, mobile OTP auth, user dashboard, and admin panel. Plans are named: Starter Plan (₹499), Silver Plan (₹999), Gold Plan (₹1999), Diamond Plan (₹2999). Income: direct 10%, binary 10%, 10-level income. Dashboard and admin panel fully functional.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Real SMS OTP delivery via MSG91 HTTP outcall from backend (http-outcalls component)
-- `sendOtpToPhone(phone)` backend function using MSG91 API
-- `verifyPhoneOtp(phone, otp)` backend function checking against stored OTP
-- MSG91 config stored as backend variable (authKey, templateId, senderId)
-- Admin can configure MSG91 credentials via admin panel
-- Fallback: if MSG91 not configured, show OTP on screen (dev mode)
-- Frontend registration flow updated to call `sendOtpToPhone` first, then `registerMobileUser` with verified OTP
-- Frontend login flow updated to use `sendOtpToPhone` + verify before login
-- SMS config section in admin panel for MSG91 key setup
+- Nothing new structurally
 
 ### Modify
-- `registerMobileUser` to accept pre-verified OTP token (or verify inline with stored OTP)
-- Frontend registration and login pages to show real SMS status
-- Admin panel to include SMS configuration section
-- All income calculations to remain automatic as-is
+- Rename all four plans across frontend:
+  - Starter Plan → Starter Wellness Kit
+  - Silver Plan → Smart Growth Kit
+  - Gold Plan → Premium Success Kit
+  - Diamond Plan → Royal Leader Kit
+- Update plan name references in: PackagesPage, LandingPage, DashboardPage, BusinessPlanPage, PlanPage, AdminPackages, income pages
+- Confirm income structure displayed clearly: Direct 10%, Binary 10%, Level income 10 levels (Level 1=10%, 2=5%, 3=4%, 4=3%, 5=2%, 6=2%, 7=1%, 8=1%, 9=1%, 10=1%)
 
 ### Remove
-- On-screen OTP display when MSG91 is configured
+- Old plan names (Starter/Silver/Gold/Diamond) replaced throughout
 
 ## Implementation Plan
-
-1. Select http-outcalls component
-2. Regenerate backend adding:
-   - MSG91 OTP send function via HTTP outcall
-   - OTP verification function
-   - Admin MSG91 config storage
-   - All existing MLM functions preserved
-3. Update frontend backend.ts declarations
-4. Update RegisterPage, LoginPage, LandingPage OTP flows
-5. Add SMS Config section to admin panel
-6. Deploy
+1. Update PLANS constant in PackagesPage.tsx with new names
+2. Update plan names in LandingPage.tsx income/packages sections
+3. Update BusinessPlanPage.tsx and PlanPage.tsx plan names
+4. Update AdminPackages.tsx default plan names
+5. Update DashboardPage.tsx active plan display
+6. Update backend planId→name mapping in all frontend helpers

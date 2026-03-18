@@ -96,28 +96,28 @@ export function PackagesPage() {
   const samplePackages = [
     {
       id: 1n,
-      name: "Starter Plan",
+      name: "Starter Wellness Kit",
       price: 499n,
       benefits:
         "Binary Income, Direct Referral Income, 10 Level Income, Welcome Bonus",
     },
     {
       id: 2n,
-      name: "Silver Plan",
+      name: "Smart Growth Kit",
       price: 999n,
       benefits:
         "Binary Income, Direct Referral Income, 10 Level Income, Rank Bonus",
     },
     {
       id: 3n,
-      name: "Gold Plan",
+      name: "Premium Success Kit",
       price: 1999n,
       benefits:
         "Binary Income, Direct Referral Income, 10 Level Income, Rank Bonus, Bonus Income",
     },
     {
       id: 4n,
-      name: "Diamond Plan",
+      name: "Royal Leader Kit",
       price: 2999n,
       benefits:
         "Binary Income, Direct Referral Income, 10 Level Income, Rank Bonus, Bonus Income, VIP Support",

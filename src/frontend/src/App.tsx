@@ -10,9 +10,12 @@ import { AdminLayout } from "./components/layout/AdminLayout";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import { PublicLayout } from "./components/layout/PublicLayout";
 import { AboutPage } from "./pages/AboutPage";
+import { BusinessPlanPage } from "./pages/BusinessPlanPage";
+import { ContactPage } from "./pages/ContactPage";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { PlanPage } from "./pages/PlanPage";
+import { ProductsPage } from "./pages/ProductsPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { AdminAnnouncements } from "./pages/admin/AdminAnnouncements";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
@@ -100,6 +103,24 @@ const aboutRoute = createRoute({
   getParentRoute: () => publicLayoutRoute,
   path: "/about",
   component: AboutPage,
+});
+
+const productsRoute = createRoute({
+  getParentRoute: () => publicLayoutRoute,
+  path: "/products",
+  component: ProductsPage,
+});
+
+const businessPlanRoute = createRoute({
+  getParentRoute: () => publicLayoutRoute,
+  path: "/business-plan",
+  component: BusinessPlanPage,
+});
+
+const contactRoute = createRoute({
+  getParentRoute: () => publicLayoutRoute,
+  path: "/contact",
+  component: ContactPage,
 });
 
 const planRoute = createRoute({
@@ -230,6 +251,9 @@ const routeTree = rootRoute.addChildren([
     loginRoute,
     registerRoute,
     aboutRoute,
+    productsRoute,
+    businessPlanRoute,
+    contactRoute,
     planRoute,
     adminLoginRoute,
   ]),

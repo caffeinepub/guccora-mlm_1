@@ -1,128 +1,342 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Globe, Heart, Shield, TrendingUp } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import {
+  Award,
+  Globe,
+  Heart,
+  Shield,
+  Target,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import { motion } from "motion/react";
 
 export function AboutPage() {
   return (
-    <div className="py-16 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div style={{ background: "#0a0a0a", color: "#fff" }}>
+      {/* Hero */}
+      <section
+        className="relative py-28 text-center"
+        style={{
+          background:
+            "radial-gradient(ellipse at 50% 0%, rgba(212,175,55,0.08), transparent 60%), #0a0a0a",
+        }}
+      >
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-16"
+          transition={{ duration: 0.7 }}
+          className="max-w-3xl mx-auto px-4"
         >
-          <h1 className="font-display text-5xl font-bold mb-4">
-            About <span className="gold-gradient-text">GUCCORA</span>
+          <div
+            className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full"
+            style={{
+              background: "rgba(212,175,55,0.08)",
+              border: "1px solid rgba(212,175,55,0.2)",
+            }}
+          >
+            <span
+              style={{
+                color: "#D4AF37",
+                fontSize: "11px",
+                letterSpacing: "0.15em",
+                fontWeight: 600,
+              }}
+            >
+              OUR STORY
+            </span>
+          </div>
+          <h1
+            className="font-display font-bold mb-4"
+            style={{
+              fontSize: "clamp(40px, 6vw, 72px)",
+              background:
+                "linear-gradient(135deg, #D4AF37, #FFD700 50%, #B8960C)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            About GUCCORA
           </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            A premium network marketing platform built for the modern era of
-            decentralized finance.
+          <div
+            style={{
+              width: "80px",
+              height: "3px",
+              background: "linear-gradient(90deg, #D4AF37, #FFD700)",
+              margin: "0 auto 24px",
+            }}
+          />
+          <p
+            style={{
+              color: "rgba(255,255,255,0.6)",
+              fontSize: "18px",
+              lineHeight: 1.8,
+            }}
+          >
+            Founded with a singular vision: to create real financial freedom
+            through a transparent, ethical, and proven network marketing system.
           </p>
         </motion.div>
+      </section>
 
-        <div className="space-y-12">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-          >
-            <Card className="bg-card border-border card-glow">
-              <CardContent className="p-8">
-                <h2 className="font-display text-2xl font-bold mb-4 gold-gradient-text">
-                  Our Mission
-                </h2>
-                <p className="text-muted-foreground leading-relaxed">
-                  GUCCORA was founded with a singular vision: to create a
-                  transparent, fair, and lucrative network marketing ecosystem
-                  powered by blockchain technology. We believe that financial
-                  freedom should be accessible to everyone — regardless of
-                  background, geography, or prior experience.
-                </p>
-                <p className="text-muted-foreground leading-relaxed mt-4">
-                  By leveraging the Internet Computer blockchain, every
-                  transaction on GUCCORA is immutable, transparent, and
-                  verifiable. Your earnings are real, your network is permanent,
-                  and your legacy is secure.
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
+      {/* Company Story */}
+      <section style={{ background: "#0d0d0d", padding: "80px 0" }}>
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <motion.div
+              initial={{ opacity: 0, x: -24 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7 }}
+              viewport={{ once: true }}
+            >
+              <h2
+                className="font-display font-bold text-3xl mb-6"
+                style={{ color: "#D4AF37" }}
+              >
+                Our Story
+              </h2>
+              <p
+                style={{
+                  color: "rgba(255,255,255,0.65)",
+                  lineHeight: 1.8,
+                  marginBottom: "16px",
+                }}
+              >
+                GUCCORA was born in 2019 with a revolutionary idea: luxury-grade
+                network marketing that actually delivers. Our founders, seasoned
+                entrepreneurs, saw a gap in the market — premium products,
+                transparent payouts, and a system designed for the everyday
+                Indian to build extraordinary wealth.
+              </p>
+              <p
+                style={{
+                  color: "rgba(255,255,255,0.65)",
+                  lineHeight: 1.8,
+                  marginBottom: "16px",
+                }}
+              >
+                In just 5 years, we've grown to 10,000+ members across 4
+                countries, paid out over ₹50 lakhs in commissions, and built a
+                community that stands for excellence, integrity, and
+                transformation.
+              </p>
+              <p style={{ color: "rgba(255,255,255,0.65)", lineHeight: 1.8 }}>
+                Every plan we offer — from Starter to Diamond — is crafted to
+                ensure that every member, at every level, has a genuine
+                opportunity to build a sustainable income.
+              </p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 24 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7 }}
+              viewport={{ once: true }}
+            >
+              <div
+                className="rounded-2xl p-8"
+                style={{
+                  background: "rgba(212,175,55,0.04)",
+                  border: "1px solid rgba(212,175,55,0.15)",
+                }}
+              >
+                <div className="grid grid-cols-2 gap-6">
+                  {[
+                    { value: "2019", label: "Founded" },
+                    { value: "10K+", label: "Members" },
+                    { value: "4", label: "Countries" },
+                    { value: "₹50L+", label: "Paid Out" },
+                  ].map((s) => (
+                    <div
+                      key={s.value}
+                      className="text-center p-5 rounded-xl"
+                      style={{ background: "rgba(212,175,55,0.06)" }}
+                    >
+                      <div
+                        className="font-display font-bold text-3xl"
+                        style={{
+                          background:
+                            "linear-gradient(135deg, #D4AF37, #FFD700)",
+                          WebkitBackgroundClip: "text",
+                          WebkitTextFillColor: "transparent",
+                          backgroundClip: "text",
+                        }}
+                      >
+                        {s.value}
+                      </div>
+                      <div
+                        style={{
+                          color: "rgba(255,255,255,0.45)",
+                          fontSize: "13px",
+                          marginTop: "4px",
+                        }}
+                      >
+                        {s.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
 
+      {/* Mission & Vision */}
+      <section style={{ background: "#0a0a0a", padding: "80px 0" }}>
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2
+              className="font-display font-bold"
+              style={{
+                fontSize: "clamp(28px, 4vw, 44px)",
+                background:
+                  "linear-gradient(135deg, #fff, rgba(255,255,255,0.75))",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              Mission & Vision
+            </h2>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
               {
-                icon: Shield,
-                title: "Transparency First",
-                desc: "Every commission, bonus, and withdrawal is recorded on-chain. No hidden fees, no manipulation.",
+                icon: Target,
+                title: "Our Mission",
+                desc: "To empower every member with the tools, training, and technology needed to build a sustainable income from anywhere in the world — with complete transparency and integrity.",
               },
               {
                 icon: Globe,
-                title: "Global Community",
-                desc: "Our members span 45+ countries, creating a truly international network of ambitious entrepreneurs.",
+                title: "Our Vision",
+                desc: "To become India's most trusted luxury network marketing platform, expanding to 25 countries with 1 million+ members, delivering premium products and life-changing financial rewards.",
               },
-              {
-                icon: TrendingUp,
-                title: "Proven System",
-                desc: "The binary MLM system is one of the most powerful compensation models in network marketing history.",
-              },
-              {
-                icon: Heart,
-                title: "Member Success",
-                desc: "Our success is measured by our members' success. We invest in tools, training, and support.",
-              },
-            ].map((item, i) => (
+            ].map(({ icon: Icon, title, desc }) => (
               <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 20 }}
+                key={title}
+                initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
+                className="p-8 rounded-2xl"
+                style={{
+                  background: "rgba(212,175,55,0.04)",
+                  border: "1px solid rgba(212,175,55,0.15)",
+                }}
               >
-                <Card className="bg-card border-border h-full">
-                  <CardContent className="p-6">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                      <item.icon size={20} className="text-primary" />
-                    </div>
-                    <h3 className="font-display font-semibold text-lg mb-2">
-                      {item.title}
-                    </h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed">
-                      {item.desc}
-                    </p>
-                  </CardContent>
-                </Card>
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
+                  style={{
+                    background: "rgba(212,175,55,0.1)",
+                    border: "1px solid rgba(212,175,55,0.25)",
+                  }}
+                >
+                  <Icon size={22} style={{ color: "#D4AF37" }} />
+                </div>
+                <h3
+                  className="font-display font-bold text-xl mb-3"
+                  style={{ color: "#D4AF37" }}
+                >
+                  {title}
+                </h3>
+                <p style={{ color: "rgba(255,255,255,0.6)", lineHeight: 1.7 }}>
+                  {desc}
+                </p>
               </motion.div>
             ))}
           </div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <Card className="bg-card border-border card-glow">
-              <CardContent className="p-8">
-                <h2 className="font-display text-2xl font-bold mb-4">
-                  Why <span className="gold-gradient-text">Blockchain MLM</span>
-                  ?
-                </h2>
-                <p className="text-muted-foreground leading-relaxed mb-4">
-                  Traditional MLM companies operate on centralized databases
-                  that can be manipulated. GUCCORA is different: our backend
-                  runs on the Internet Computer — a world-class blockchain that
-                  processes thousands of transactions per second with
-                  near-instant finality.
-                </p>
-                <p className="text-muted-foreground leading-relaxed">
-                  This means your commissions are calculated and distributed
-                  automatically by smart contracts. No human can alter the rules
-                  mid-game. What you sign up for is what you get.
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
         </div>
-      </div>
+      </section>
+
+      {/* Values */}
+      <section style={{ background: "#0d0d0d", padding: "80px 0" }}>
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2
+              className="font-display font-bold"
+              style={{
+                fontSize: "clamp(28px, 4vw, 44px)",
+                background:
+                  "linear-gradient(135deg, #fff, rgba(255,255,255,0.75))",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              Our Core Values
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+            {[
+              { icon: Shield, label: "Integrity" },
+              { icon: Heart, label: "Care" },
+              { icon: TrendingUp, label: "Growth" },
+              { icon: Award, label: "Excellence" },
+              { icon: Users, label: "Community" },
+              { icon: Globe, label: "Diversity" },
+              { icon: Target, label: "Focus" },
+              { icon: Award, label: "Luxury" },
+            ].map(({ icon: Icon, label }) => (
+              <div
+                key={label}
+                className="p-5 rounded-2xl text-center"
+                style={{
+                  background: "rgba(212,175,55,0.04)",
+                  border: "1px solid rgba(212,175,55,0.12)",
+                }}
+              >
+                <Icon
+                  size={24}
+                  className="mx-auto mb-3"
+                  style={{ color: "#D4AF37" }}
+                />
+                <div
+                  style={{
+                    color: "rgba(255,255,255,0.75)",
+                    fontWeight: 600,
+                    fontSize: "14px",
+                  }}
+                >
+                  {label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section style={{ padding: "80px 0" }}>
+        <div className="max-w-2xl mx-auto px-4 text-center">
+          <h2
+            className="font-display font-bold text-3xl mb-4"
+            style={{ color: "#D4AF37" }}
+          >
+            Ready to Build Your Legacy?
+          </h2>
+          <p className="mb-8" style={{ color: "rgba(255,255,255,0.55)" }}>
+            Join GUCCORA today and start your journey toward financial freedom.
+          </p>
+          <Link to="/register" data-ocid="about.primary_button">
+            <button
+              type="button"
+              style={{
+                background: "linear-gradient(135deg, #D4AF37, #FFD700)",
+                color: "#0a0a0a",
+                border: "none",
+                padding: "13px 40px",
+                borderRadius: "32px",
+                fontWeight: 700,
+                fontSize: "15px",
+                cursor: "pointer",
+                boxShadow: "0 0 30px rgba(212,175,55,0.25)",
+              }}
+            >
+              Join GUCCORA Now
+            </button>
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

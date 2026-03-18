@@ -1,29 +1,38 @@
 # GUCCORA MLM
 
 ## Current State
-Full MLM web app with Motoko backend, luxury black/gold UI, mobile OTP auth, user dashboard, and admin panel. Plans are named: Starter Plan (₹499), Silver Plan (₹999), Gold Plan (₹1999), Diamond Plan (₹2999). Income: direct 10%, binary 10%, 10-level income. Dashboard and admin panel fully functional.
+- IC Motoko backend with stable variable storage
+- Admin login page at /admin-login, accepts admin/Admin@123 or admin/admin123
+- Backend default password is "Admin@123" in stable var
+- AdminDashboard has connection/retry logic but sometimes shows "Backend unavailable"
+- Mobile OTP registration stores users in IC backend
+- Full admin panel: Users, Withdrawals, Packages, Products, Income, Tree
+- Sessions stored in localStorage (guccora_admin_session, guccora_mobile_session)
 
 ## Requested Changes (Diff)
 
 ### Add
-- Nothing new structurally
+- Default admin credentials: username: admin, password: admin123 (shown as default in UI)
+- Robust admin session management with proper auth guard on all admin routes
+- User login page that works with stored mobile users
 
 ### Modify
-- Rename all four plans across frontend:
-  - Starter Plan → Starter Wellness Kit
-  - Silver Plan → Smart Growth Kit
-  - Gold Plan → Premium Success Kit
-  - Diamond Plan → Royal Leader Kit
-- Update plan name references in: PackagesPage, LandingPage, DashboardPage, BusinessPlanPage, PlanPage, AdminPackages, income pages
-- Confirm income structure displayed clearly: Direct 10%, Binary 10%, Level income 10 levels (Level 1=10%, 2=5%, 3=4%, 4=3%, 5=2%, 6=2%, 7=1%, 8=1%, 9=1%, 10=1%)
+- Backend default _adminPassword from "Admin@123" to "admin123"
+- AdminLogin: show admin/admin123 as default credentials, accept both admin123 and Admin@123
+- AdminDashboard: remove backend connectivity gating -- show admin panel immediately if localStorage session exists; load stats async without blocking UI
+- AdminLayout: add proper auth guard redirect to /admin-login if no session
+- DashboardLayout: add auth guard redirect to /login if no mobile session
+- LoginPage: wire up mobile OTP login properly using backend sendOtpToPhone/verifyPhoneOtp/getMobileUserByPhone
 
 ### Remove
-- Old plan names (Starter/Silver/Gold/Diamond) replaced throughout
+- "Backend unavailable" blocking state from admin dashboard (non-blocking: show panel with loading states)
+- Dependency on IC identity for admin access (use localStorage session + password verification)
 
 ## Implementation Plan
-1. Update PLANS constant in PackagesPage.tsx with new names
-2. Update plan names in LandingPage.tsx income/packages sections
-3. Update BusinessPlanPage.tsx and PlanPage.tsx plan names
-4. Update AdminPackages.tsx default plan names
-5. Update DashboardPage.tsx active plan display
-6. Update backend planId→name mapping in all frontend helpers
+1. Update backend main.mo: change _adminPassword default to "admin123"
+2. Update AdminLogin: show admin/admin123 hint, accept both passwords
+3. Update AdminDashboard: non-blocking stats load, show dashboard immediately on valid session
+4. Update AdminLayout: redirect to /admin-login if no guccora_admin_session in localStorage
+5. Update DashboardLayout: redirect to /login if no guccora_mobile_session
+6. Update LoginPage: proper OTP-based mobile login flow
+7. Validate and build

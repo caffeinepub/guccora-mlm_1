@@ -24,25 +24,22 @@ export function AdminLogin() {
     }
     setLoading(true);
     try {
-      // Accept both Admin@123 and admin123 for backward compatibility
-      if (
-        username !== "admin" ||
-        (password !== "Admin@123" && password !== "admin123")
-      ) {
+      // Accept both admin123 and Admin@123 for backward compatibility
+      const validPasswords = ["admin123", "Admin@123"];
+      if (username !== "admin" || !validPasswords.includes(password)) {
         toast.error("Invalid credentials");
         setLoading(false);
         return;
       }
 
-      // Call backend loginAsAdmin with the current (possibly anonymous) actor
+      // Best-effort backend call — don't block login if it fails
       if (actor) {
         try {
           await actor.loginAsAdmin(password);
-        } catch (_) {
-          // Try fallback password if first attempt fails
+        } catch {
           try {
             await actor.loginAsAdmin("admin123");
-          } catch (__) {
+          } catch {
             // Backend call is best-effort; session continues regardless
           }
         }
@@ -125,7 +122,7 @@ export function AdminLogin() {
               <p className="text-xs text-muted-foreground text-center">
                 Default:{" "}
                 <span className="text-foreground font-medium">admin</span> /{" "}
-                <span className="text-foreground font-medium">Admin@123</span>
+                <span className="text-foreground font-medium">admin123</span>
               </p>
             </div>
             <div className="mt-3 text-center">

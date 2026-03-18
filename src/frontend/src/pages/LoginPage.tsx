@@ -13,7 +13,7 @@ import { useMobileSession } from "../hooks/useMobileSession";
 type Step = "phone" | "otp";
 
 export function LoginPage() {
-  const { actor } = useActor();
+  const { actor, isFetching: actorLoading } = useActor();
   const { setMobileSession } = useMobileSession();
   const navigate = useNavigate();
 
@@ -30,7 +30,7 @@ export function LoginPage() {
       return;
     }
     if (!actor) {
-      toast.error("Not connected to backend");
+      toast.error("Not connected to backend. Please wait and try again.");
       return;
     }
     setLoading(true);
@@ -41,7 +41,7 @@ export function LoginPage() {
         toast.success("OTP sent to your mobile number");
       } else {
         setGeneratedOtp(result);
-        toast.success(`OTP: ${result} (Dev mode)`);
+        toast.success(`OTP: ${result} (Dev mode — check screen)`);
       }
       setStep("otp");
     } catch {
@@ -88,6 +88,8 @@ export function LoginPage() {
       setLoading(false);
     }
   };
+
+  const isSendDisabled = loading || actorLoading || !actor;
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-16">
@@ -149,13 +151,13 @@ export function LoginPage() {
                   type="submit"
                   size="lg"
                   className="w-full gold-gradient text-primary-foreground font-bold rounded-full"
-                  disabled={loading}
+                  disabled={isSendDisabled}
                   data-ocid="login.primary_button"
                 >
-                  {loading ? (
+                  {loading || actorLoading ? (
                     <>
                       <Loader2 size={16} className="mr-2 animate-spin" />
-                      Sending...
+                      {actorLoading ? "Connecting..." : "Sending..."}
                     </>
                   ) : (
                     "Send OTP"
@@ -164,21 +166,35 @@ export function LoginPage() {
               </form>
             ) : (
               <form onSubmit={handleVerifyOtp} className="space-y-5">
-                {/* Demo OTP display */}
-                <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 text-center">
-                  <p className="text-sm text-muted-foreground mb-1">
-                    OTP sent to{" "}
-                    <span className="text-foreground font-medium">
-                      +91-{phone.slice(0, 5)}XXXXX
-                    </span>
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Demo mode — your OTP is:{" "}
-                    <span className="font-mono font-bold text-primary text-base tracking-widest">
+                {/* Dev mode OTP display — only shown when OTP is returned in response */}
+                {generatedOtp ? (
+                  <div className="bg-primary/5 border border-primary/30 rounded-xl p-4 text-center">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">
+                      Dev Mode — Your OTP
+                    </p>
+                    <p className="font-mono font-bold text-primary text-3xl tracking-[0.5em]">
                       {generatedOtp}
-                    </span>
-                  </p>
-                </div>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Sent to{" "}
+                      <span className="text-foreground">
+                        +91-{phone.slice(0, 5)}XXXXX
+                      </span>
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-muted/20 border border-border rounded-xl p-4 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      OTP sent to{" "}
+                      <span className="text-foreground font-medium">
+                        +91-{phone.slice(0, 5)}XXXXX
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Check your SMS inbox
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="otp">Enter 6-digit OTP</Label>
@@ -223,6 +239,7 @@ export function LoginPage() {
                   onClick={() => {
                     setStep("phone");
                     setEnteredOtp("");
+                    setGeneratedOtp("");
                   }}
                   data-ocid="login.secondary_button"
                 >

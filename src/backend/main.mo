@@ -246,7 +246,7 @@ actor {
   stable var _nextTransactionIdStable : Nat = 0;
   stable var _nextWithdrawalIdStable : Nat = 0;
   stable var _nextAnnouncementIdStable : Nat = 0;
-  stable var _adminPassword : Text = "Admin@123";
+  stable var _adminPassword : Text = "admin123";
   stable var _mobileUsersStable : [(Text, MobileUser)] = [];
   stable var _bankDetailsStable : [(Text, BankDetails)] = [];
   stable var _nextMobileUserIdStable : Nat = 1001;
